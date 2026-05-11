@@ -13,89 +13,52 @@
 <div class="main-wrapper">
 
     <div class="left-panel">
-
         <div class="glass-card" id="gameContainer">
 
             <h1 class="title">NEON SNAKE</h1>
 
-            <div class="welcome">
-                Добро пожаловать, {{ username }}
-            </div>
+            <div class="welcome">Добро пожаловать, {{ username }}</div>
 
             <a href="/logout" class="logout-btn">Выйти</a>
 
             <div class="instructions">
                 <h3>Инструкция</h3>
-
-                <p>
-                    Управление:
-                    <br>
-                    ПК → W A S D / Стрелки
-                    <br>
-                    Телефон → свайпы и кнопки
-                </p>
-
-                <p>
-                    Каждые 5 яблок повышают уровень и скорость змейки.
-                </p>
-
-                <p>
-                    С ростом уровня появляются заборчики. Столкновение с ними завершает игру.
-                </p>
-
-                <p>
-                    Очки начисляются по геометрической прогрессии:
-                    1 → 2 → 4 → 8 → 16...
-                </p>
-
-                <p>
-                    Цель: пройти до 10 уровня.
-                </p>
+                <p>ПК → W A S D / Стрелки<br>Телефон → свайпы и кнопки</p>
+                <p>Каждые 5 яблок повышают уровень и скорость змейки.</p>
+                <p>С ростом уровня появляются разные заборчики. Столкновение с ними завершает игру.</p>
+                <p>Очки начисляются по геометрической прогрессии: 1 → 2 → 4 → 8 → 16...</p>
+                <p>Цель: пройти до 10 уровня.</p>
             </div>
 
             <div class="stats">
-                <div class="stat-box">
-                    <span>Рекорд</span>
-                    <strong id="bestScore">{{ best_score }}</strong>
-                </div>
-
-                <div class="stat-box">
-                    <span>Счёт</span>
-                    <strong id="score">0</strong>
-                </div>
-
-                <div class="stat-box">
-                    <span>Уровень</span>
-                    <strong id="level">1</strong>
-                </div>
-
-                <div class="stat-box">
-                    <span>Очки за еду</span>
-                    <strong id="foodValue">1</strong>
-                </div>
+                <div class="stat-box"><span>Рекорд</span><strong id="bestScore">{{ best_score }}</strong></div>
+                <div class="stat-box"><span>Счёт</span><strong id="score">0</strong></div>
+                <div class="stat-box"><span>Уровень</span><strong id="level">1</strong></div>
+                <div class="stat-box"><span>Очки за еду</span><strong id="foodValue">1</strong></div>
             </div>
 
-            <button id="startBtn" class="play-btn">Начать игру</button>
-            <button class="play-btn" onclick="toggleFullscreen()">Полный экран</button>
+            <div class="game-buttons">
+                <button id="startBtn" class="play-btn">Начать игру</button>
+                <button class="play-btn" onclick="toggleFullscreen()">Полный экран</button>
+            </div>
 
-            <canvas id="gameCanvas" width="400" height="400"></canvas>
+            <div class="canvas-wrap">
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+            </div>
 
             <div id="gameOver" class="game-over">Игра окончена!</div>
             <div id="winText" class="game-over" style="color:#56ffb1;">Победа! Ты дошёл до 10 уровня!</div>
 
             <div class="mobile-controls">
                 <button class="control-btn" onclick="setDirection('UP')">▲</button>
-
                 <div class="middle-controls">
                     <button class="control-btn" onclick="setDirection('LEFT')">◀</button>
                     <button class="control-btn" onclick="setDirection('RIGHT')">▶</button>
                 </div>
-
                 <button class="control-btn" onclick="setDirection('DOWN')">▼</button>
             </div>
 
         </div>
-
     </div>
 
     <div class="right-panel">
@@ -153,7 +116,6 @@ let eatenFood = 0;
 
 let speed = 150;
 let gameLoop = null;
-let gameStarted = false;
 
 gameOverText.style.display = "none";
 winText.style.display = "none";
@@ -182,12 +144,9 @@ function startGame() {
     obstacles = generateObstacles(level);
     generateFood();
 
-    if (gameLoop) {
-        clearInterval(gameLoop);
-    }
+    if (gameLoop) clearInterval(gameLoop);
 
     gameLoop = setInterval(drawGame, speed);
-    gameStarted = true;
 }
 
 function drawGame() {
@@ -206,16 +165,8 @@ function drawGame() {
 
 function drawBackground() {
     const levelColors = [
-        "#04122b",
-        "#04271e",
-        "#05362a",
-        "#063f3a",
-        "#083550",
-        "#10245c",
-        "#25145c",
-        "#3b145c",
-        "#4a1835",
-        "#4a2208"
+        "#04122b", "#04271e", "#05362a", "#063f3a", "#083550",
+        "#10245c", "#25145c", "#3b145c", "#4a1835", "#4a2208"
     ];
 
     ctx.fillStyle = levelColors[(level - 1) % levelColors.length];
@@ -288,31 +239,46 @@ function updateLevel() {
 function generateObstacles(currentLevel) {
     let list = [];
 
+    if (currentLevel >= 2) {
+        for (let y = 4; y <= 8; y++) list.push({x: 5, y});
+    }
+
     if (currentLevel >= 3) {
-        for (let y = 5; y <= 14; y++) {
-            list.push({x: 5, y: y});
-        }
+        for (let x = 11; x <= 16; x++) list.push({x, y: 5});
+    }
+
+    if (currentLevel >= 4) {
+        for (let y = 11; y <= 16; y++) list.push({x: 14, y});
     }
 
     if (currentLevel >= 5) {
-        for (let x = 9; x <= 15; x++) {
-            list.push({x: x, y: 6});
-        }
+        for (let x = 3; x <= 8; x++) list.push({x, y: 14});
+        for (let y = 3; y <= 7; y++) list.push({x: 17, y});
+    }
+
+    if (currentLevel >= 6) {
+        for (let x = 7; x <= 12; x++) list.push({x, y: 9});
+        for (let y = 10; y <= 14; y++) list.push({x: 9, y});
     }
 
     if (currentLevel >= 7) {
-        for (let y = 9; y <= 17; y++) {
-            list.push({x: 14, y: y});
+        for (let x = 2; x <= 6; x++) list.push({x, y: 3});
+        for (let x = 13; x <= 17; x++) list.push({x, y: 16});
+    }
+
+    if (currentLevel >= 8) {
+        for (let y = 6; y <= 13; y++) {
+            if (y !== 10) list.push({x: 10, y});
         }
     }
 
     if (currentLevel >= 9) {
-        for (let x = 3; x <= 10; x++) {
-            list.push({x: x, y: 15});
+        for (let x = 4; x <= 15; x++) {
+            if (x !== 9 && x !== 10) list.push({x, y: 11});
         }
 
-        for (let x = 11; x <= 17; x++) {
-            list.push({x: x, y: 3});
+        for (let y = 4; y <= 15; y++) {
+            if (y !== 9 && y !== 10) list.push({x: 7, y});
         }
     }
 
@@ -322,14 +288,15 @@ function generateObstacles(currentLevel) {
 function drawObstacles() {
     ctx.fillStyle = "#00ccff";
     ctx.shadowColor = "#00ccff";
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 14;
 
     obstacles.forEach(block => {
-        ctx.fillRect(
+        drawRoundedRect(
             block.x * gridSize + 2,
             block.y * gridSize + 2,
             gridSize - 4,
-            gridSize - 4
+            gridSize - 4,
+            5
         );
     });
 
@@ -364,7 +331,6 @@ function drawSnake() {
 
         if (index === 0) {
             ctx.fillStyle = "#111";
-
             ctx.beginPath();
             ctx.arc(part.x * gridSize + 7, part.y * gridSize + 7, 2, 0, Math.PI * 2);
             ctx.fill();
@@ -396,13 +362,7 @@ function drawFood() {
     ctx.shadowBlur = 18;
 
     ctx.beginPath();
-    ctx.arc(
-        food.x * gridSize + 10,
-        food.y * gridSize + 10,
-        8,
-        0,
-        Math.PI * 2
-    );
+    ctx.arc(food.x * gridSize + 10, food.y * gridSize + 10, 8, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.shadowBlur = 0;
@@ -420,17 +380,11 @@ function generateFood() {
         valid = true;
 
         for (let part of snake) {
-            if (part.x === food.x && part.y === food.y) {
-                valid = false;
-                break;
-            }
+            if (part.x === food.x && part.y === food.y) valid = false;
         }
 
         for (let block of obstacles) {
-            if (block.x === food.x && block.y === food.y) {
-                valid = false;
-                break;
-            }
+            if (block.x === food.x && block.y === food.y) valid = false;
         }
     }
 }
@@ -438,25 +392,16 @@ function generateFood() {
 function checkCollision() {
     const head = snake[0];
 
-    if (
-        head.x < 0 ||
-        head.y < 0 ||
-        head.x >= tileCount ||
-        head.y >= tileCount
-    ) {
+    if (head.x < 0 || head.y < 0 || head.x >= tileCount || head.y >= tileCount) {
         return true;
     }
 
     for (let i = 1; i < snake.length; i++) {
-        if (snake[i].x === head.x && snake[i].y === head.y) {
-            return true;
-        }
+        if (snake[i].x === head.x && snake[i].y === head.y) return true;
     }
 
     for (let block of obstacles) {
-        if (block.x === head.x && block.y === head.y) {
-            return true;
-        }
+        if (block.x === head.x && block.y === head.y) return true;
     }
 
     return false;
@@ -464,28 +409,20 @@ function checkCollision() {
 
 function endGame() {
     clearInterval(gameLoop);
-    gameStarted = false;
-
     gameOverText.style.display = "block";
-
     saveScore(score);
 }
 
 function winGame() {
     clearInterval(gameLoop);
-    gameStarted = false;
-
     winText.style.display = "block";
-
     saveScore(score);
 }
 
 function saveScore(finalScore) {
     fetch('/save_score', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({score: finalScore})
     });
 }
@@ -493,46 +430,27 @@ function saveScore(finalScore) {
 document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
 
-    if ((key === "arrowup" || key === "w") && dy !== 1) {
-        dx = 0;
-        dy = -1;
-    }
-
-    if ((key === "arrowdown" || key === "s") && dy !== -1) {
-        dx = 0;
-        dy = 1;
-    }
-
-    if ((key === "arrowleft" || key === "a") && dx !== 1) {
-        dx = -1;
-        dy = 0;
-    }
-
-    if ((key === "arrowright" || key === "d") && dx !== -1) {
-        dx = 1;
-        dy = 0;
-    }
+    if ((key === "arrowup" || key === "w") && dy !== 1) setDirection("UP");
+    if ((key === "arrowdown" || key === "s") && dy !== -1) setDirection("DOWN");
+    if ((key === "arrowleft" || key === "a") && dx !== 1) setDirection("LEFT");
+    if ((key === "arrowright" || key === "d") && dx !== -1) setDirection("RIGHT");
 });
 
 function setDirection(direction) {
     if (direction === "UP" && dy !== 1) {
-        dx = 0;
-        dy = -1;
+        dx = 0; dy = -1;
     }
 
     if (direction === "DOWN" && dy !== -1) {
-        dx = 0;
-        dy = 1;
+        dx = 0; dy = 1;
     }
 
     if (direction === "LEFT" && dx !== 1) {
-        dx = -1;
-        dy = 0;
+        dx = -1; dy = 0;
     }
 
     if (direction === "RIGHT" && dx !== -1) {
-        dx = 1;
-        dy = 0;
+        dx = 1; dy = 0;
     }
 }
 
@@ -551,22 +469,12 @@ canvas.addEventListener("touchend", (e) => {
     let dxSwipe = touchEndX - touchStartX;
     let dySwipe = touchEndY - touchStartY;
 
-    if (Math.abs(dxSwipe) < 25 && Math.abs(dySwipe) < 25) {
-        return;
-    }
+    if (Math.abs(dxSwipe) < 25 && Math.abs(dySwipe) < 25) return;
 
     if (Math.abs(dxSwipe) > Math.abs(dySwipe)) {
-        if (dxSwipe > 0) {
-            setDirection("RIGHT");
-        } else {
-            setDirection("LEFT");
-        }
+        dxSwipe > 0 ? setDirection("RIGHT") : setDirection("LEFT");
     } else {
-        if (dySwipe > 0) {
-            setDirection("DOWN");
-        } else {
-            setDirection("UP");
-        }
+        dySwipe > 0 ? setDirection("DOWN") : setDirection("UP");
     }
 });
 

@@ -352,4 +352,45 @@ input:focus{
         display:block;
         text-align:center;
     }
+}.game-buttons{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.canvas-wrap{
+    width:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+#gameContainer:fullscreen{
+    width:100vw;
+    height:100vh;
+    max-width:none;
+    border-radius:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:auto;
+}
+
+#gameContainer:fullscreen .instructions,
+#gameContainer:fullscreen .welcome,
+#gameContainer:fullscreen .logout-btn{
+    display:none;
+}
+
+#gameContainer:fullscreen canvas{
+    max-width:min(80vh, 80vw);
+}
+
+#gameContainer:fullscreen .stats{
+    justify-content:center;
+}
+
+#gameContainer:fullscreen .title{
+    text-align:center;
 }
