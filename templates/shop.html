@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магазин | NEON SNAKE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="background-grid"></div>
+
+<div class="shop-page">
+
+    <div class="glass-card shop-card">
+
+        <div class="shop-header">
+            <div>
+                <h1 class="title">МАГАЗИН СКИНОВ</h1>
+                <p class="welcome">Игрок: {{ username }}</p>
+            </div>
+
+            <div class="coins-box">
+                💰 {{ coins }}
+            </div>
+        </div>
+
+        <div class="shop-buttons">
+            <a href="/game" class="play-btn">Назад в игру</a>
+            <a href="/logout" class="logout-btn">Выйти</a>
+        </div>
+
+        <div class="skins-grid">
+
+            {% for skin_id, skin in skins.items() %}
+
+            <div class="skin-card">
+
+                <div class="snake-preview">
+
+                    <div class="preview-head"
+                         style="background: {{ skin.head }};">
+                    </div>
+
+                    <div class="preview-body"
+                         style="background: linear-gradient(45deg, {{ skin.body1 }}, {{ skin.body2 }});">
+                    </div>
+
+                    <div class="preview-body"
+                         style="background: linear-gradient(45deg, {{ skin.body1 }}, {{ skin.body2 }});">
+                    </div>
+
+                    <div class="preview-body"
+                         style="background: linear-gradient(45deg, {{ skin.body1 }}, {{ skin.body2 }});">
+                    </div>
+
+                </div>
+
+                <h2>{{ skin.name }}</h2>
+
+                <p class="skin-price">
+                    Цена: {{ skin.price }} 💰
+                </p>
+
+                {% if skin_id == selected_skin %}
+
+                    <button class="selected-btn">
+                        Выбран
+                    </button>
+
+                {% elif skin_id in owned_skins %}
+
+                    <a href="/select_skin/{{ skin_id }}"
+                       class="play-btn">
+                        Выбрать
+                    </a>
+
+                {% else %}
+
+                    <a href="/buy_skin/{{ skin_id }}"
+                       class="buy-btn">
+                        Купить
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

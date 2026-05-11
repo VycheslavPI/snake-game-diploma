@@ -6,13 +6,49 @@ app = Flask(__name__)
 app.secret_key = 'secret123'
 
 
+SKINS = {
+    'neon': {
+        'name': 'Neon',
+        'price': 0,
+        'head': '#b7ff00',
+        'body1': '#00ff99',
+        'body2': '#00cc66'
+    },
+    'fire': {
+        'name': 'Fire',
+        'price': 50,
+        'head': '#ffcc00',
+        'body1': '#ff4500',
+        'body2': '#ff0000'
+    },
+    'ice': {
+        'name': 'Ice',
+        'price': 75,
+        'head': '#e0f2fe',
+        'body1': '#38bdf8',
+        'body2': '#0284c7'
+    },
+    'purple': {
+        'name': 'Void',
+        'price': 100,
+        'head': '#e879f9',
+        'body1': '#a855f7',
+        'body2': '#6d28d9'
+    }
+}
+
+
+def get_db_connection():
+    return sqlite3.connect('database.db')
+
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
 
-        connection = sqlite3.connect('database.db')
+        connection = get_db_connection()
         cursor = connection.cursor()
 
         cursor.execute(
@@ -39,12 +75,15 @@ def register():
 
         hashed_password = generate_password_hash(password)
 
-        connection = sqlite3.connect('database.db')
+        connection = get_db_connection()
         cursor = connection.cursor()
 
         try:
             cursor.execute(
-                'INSERT INTO users (username, password) VALUES (?, ?)',
+                '''
+                INSERT INTO users (username, password, coins, selected_skin, owned_skins)
+                VALUES (?, ?, 0, 'neon', 'neon')
+                ''',
                 (username, hashed_password)
             )
             connection.commit()
@@ -64,16 +103,18 @@ def game():
 
     username = session['user']
 
-    connection = sqlite3.connect('database.db')
+    connection = get_db_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        'SELECT best_score FROM users WHERE username = ?',
+        'SELECT best_score, coins, selected_skin FROM users WHERE username = ?',
         (username,)
     )
     result = cursor.fetchone()
 
     best_score = result[0] if result else 0
+    coins = result[1] if result else 0
+    selected_skin = result[2] if result else 'neon'
 
     cursor.execute(
         'SELECT username, best_score FROM users ORDER BY best_score DESC LIMIT 5'
@@ -82,11 +123,15 @@ def game():
 
     connection.close()
 
+    skin_data = SKINS.get(selected_skin, SKINS['neon'])
+
     return render_template(
         'game.html',
         username=username,
         best_score=best_score,
-        leaders=leaders
+        coins=coins,
+        leaders=leaders,
+        skin_data=skin_data
     )
 
 
@@ -96,30 +141,141 @@ def save_score():
         return jsonify({'status': 'error', 'message': 'Пользователь не авторизован'})
 
     data = request.get_json()
-    score = data.get('score', 0)
+    score = int(data.get('score', 0))
     username = session['user']
 
-    connection = sqlite3.connect('database.db')
+    earned_coins = score // 5
+
+    connection = get_db_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        'SELECT best_score FROM users WHERE username = ?',
+        'SELECT best_score, coins FROM users WHERE username = ?',
         (username,)
     )
     result = cursor.fetchone()
 
     current_best = result[0] if result else 0
+    current_coins = result[1] if result else 0
 
     if score > current_best:
         cursor.execute(
             'UPDATE users SET best_score = ? WHERE username = ?',
             (score, username)
         )
+
+    cursor.execute(
+        'UPDATE users SET coins = ? WHERE username = ?',
+        (current_coins + earned_coins, username)
+    )
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({'status': 'success', 'earned_coins': earned_coins})
+
+
+@app.route('/shop')
+def shop():
+    if 'user' not in session:
+        return redirect('/')
+
+    username = session['user']
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        'SELECT coins, selected_skin, owned_skins FROM users WHERE username = ?',
+        (username,)
+    )
+    result = cursor.fetchone()
+    connection.close()
+
+    coins = result[0]
+    selected_skin = result[1]
+    owned_skins = result[2].split(',')
+
+    return render_template(
+        'shop.html',
+        username=username,
+        coins=coins,
+        skins=SKINS,
+        selected_skin=selected_skin,
+        owned_skins=owned_skins
+    )
+
+
+@app.route('/buy_skin/<skin_id>')
+def buy_skin(skin_id):
+    if 'user' not in session:
+        return redirect('/')
+
+    if skin_id not in SKINS:
+        return redirect('/shop')
+
+    username = session['user']
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        'SELECT coins, owned_skins FROM users WHERE username = ?',
+        (username,)
+    )
+    result = cursor.fetchone()
+
+    coins = result[0]
+    owned_skins = result[1].split(',')
+
+    skin_price = SKINS[skin_id]['price']
+
+    if skin_id in owned_skins:
+        connection.close()
+        return redirect('/shop')
+
+    if coins >= skin_price:
+        coins -= skin_price
+        owned_skins.append(skin_id)
+
+        cursor.execute(
+            'UPDATE users SET coins = ?, owned_skins = ? WHERE username = ?',
+            (coins, ','.join(owned_skins), username)
+        )
+
         connection.commit()
 
     connection.close()
+    return redirect('/shop')
 
-    return jsonify({'status': 'success'})
+
+@app.route('/select_skin/<skin_id>')
+def select_skin(skin_id):
+    if 'user' not in session:
+        return redirect('/')
+
+    username = session['user']
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        'SELECT owned_skins FROM users WHERE username = ?',
+        (username,)
+    )
+    result = cursor.fetchone()
+
+    owned_skins = result[0].split(',')
+
+    if skin_id in owned_skins:
+        cursor.execute(
+            'UPDATE users SET selected_skin = ? WHERE username = ?',
+            (skin_id, username)
+        )
+        connection.commit()
+
+    connection.close()
+    return redirect('/shop')
 
 
 @app.route('/logout')

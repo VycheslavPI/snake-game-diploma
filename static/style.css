@@ -393,4 +393,112 @@ input:focus{
 
 #gameContainer:fullscreen .title{
     text-align:center;
+}.shop-page{
+    width:100%;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:40px 20px;
+}
+
+.shop-card{
+    width:100%;
+    max-width:1200px;
+}
+
+.shop-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:30px;
+    flex-wrap:wrap;
+    gap:20px;
+}
+
+.coins-box{
+    background:#13264d;
+    padding:14px 22px;
+    border-radius:14px;
+    font-size:22px;
+    font-weight:bold;
+    color:#56ffb1;
+    box-shadow:0 0 15px rgba(0,255,170,0.3);
+}
+
+.shop-buttons{
+    display:flex;
+    gap:12px;
+    margin-bottom:30px;
+    flex-wrap:wrap;
+}
+
+.skins-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:25px;
+}
+
+.skin-card{
+    background:#071633;
+    border:1px solid rgba(0,255,170,0.15);
+    border-radius:20px;
+    padding:25px;
+    text-align:center;
+    transition:0.3s;
+    box-shadow:0 0 20px rgba(0,255,170,0.08);
+}
+
+.skin-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 0 25px rgba(0,255,170,0.25);
+}
+
+.snake-preview{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+    margin-bottom:20px;
+}
+
+.preview-head,
+.preview-body{
+    width:28px;
+    height:28px;
+    border-radius:8px;
+}
+
+.preview-head{
+    box-shadow:0 0 15px rgba(255,255,255,0.4);
+}
+
+.skin-price{
+    margin:15px 0;
+    color:#9fdcff;
+}
+
+.buy-btn{
+    display:inline-block;
+    background:linear-gradient(45deg,#ff7b00,#ff0066);
+    color:white;
+    padding:12px 22px;
+    border-radius:12px;
+    text-decoration:none;
+    font-weight:bold;
+    box-shadow:0 0 15px rgba(255,0,102,0.35);
+    transition:0.3s;
+}
+
+.buy-btn:hover{
+    transform:scale(1.05);
+}
+
+.selected-btn{
+    background:#00ff99;
+    color:#02111f;
+    border:none;
+    padding:12px 22px;
+    border-radius:12px;
+    font-weight:bold;
 }
