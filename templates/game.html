@@ -2,207 +2,222 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEON SNAKE</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-<div class="page">
-    <div class="game-layout">
+<div class="background-grid"></div>
 
-        <div class="card">
-            <h2>Добро пожаловать, {{ username }}</h2>
+<div class="main-wrapper">
 
-            <button class="logout" onclick="location.href='/logout'">Выйти</button>
+    <div class="left-panel">
 
-            <h1 class="game-title">NEON SNAKE</h1>
-            <div class="subtitle">Cyber Edition</div>
+        <div class="glass-card">
 
-            <div class="card instruction">
+            <h1 class="title">NEON SNAKE</h1>
+
+            <div class="welcome">
+                Добро пожаловать, {{ username }}
+            </div>
+
+            <a href="/logout" class="logout-btn">Выйти</a>
+
+            <div class="instructions">
                 <h3>Инструкция</h3>
-                <p>Управление: стрелки или клавиши W-A-S-D.</p>
-                <p>Собирай еду, увеличивай счёт и переходи на новые уровни.</p>
-                <p>Каждые 5 яблок уровень повышается, а скорость змейки увеличивается.</p>
-                <p>Очки начисляются по геометрической прогрессии по уровням: 1, 2, 4, 8, 16...</p>
-                <p>Цель: дойти до 10 уровня.</p>
+
+                <p>
+                    Управление:
+                    <br>
+                    ПК → W A S D / Стрелки
+                    <br>
+                    Телефон → свайпы и кнопки
+                </p>
+
+                <p>
+                    Каждые 5 яблок повышают уровень и скорость змейки.
+                </p>
+
+                <p>
+                    Очки растут по геометрической прогрессии:
+                    1 → 2 → 4 → 8 → 16...
+                </p>
+
+                <p>
+                    Цель: пройти как можно дальше.
+                </p>
             </div>
 
             <div class="stats">
-                <div class="stat-box">Рекорд: <b>{{ best_score }}</b></div>
-                <div class="stat-box">Счёт: <b id="score">0</b></div>
-                <div class="stat-box">Уровень: <b id="level">1</b></div>
-                <div class="stat-box">Очки за еду: <b id="foodPoints">1</b></div>
+
+                <div class="stat-box">
+                    <span>Рекорд</span>
+                    <strong id="bestScore">{{ best_score }}</strong>
+                </div>
+
+                <div class="stat-box">
+                    <span>Счёт</span>
+                    <strong id="score">0</strong>
+                </div>
+
+                <div class="stat-box">
+                    <span>Уровень</span>
+                    <strong id="level">1</strong>
+                </div>
+
+                <div class="stat-box">
+                    <span>Очки за еду</span>
+                    <strong id="foodValue">1</strong>
+                </div>
+
             </div>
 
-            <button id="startButton" onclick="startGame()">Начать игру</button>
-            <button id="restartButton" onclick="location.reload()" style="display:none;">Играть заново</button>
-
-            <br><br>
+            <button id="startBtn" class="play-btn">
+                Начать игру
+            </button>
 
             <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-            <h3 id="gameOverText" class="game-over" style="display:none;">Игра окончена!</h3>
-            <h3 id="winText" style="display:none; color:#22c55e;">Победа! Ты прошёл игру!</h3>
+            <div id="gameOver" class="game-over">
+                Игра окончена!
+            </div>
+
+            <!-- МОБИЛЬНЫЕ КНОПКИ -->
+            <div class="mobile-controls">
+
+                <button class="control-btn" onclick="setDirection('UP')">▲</button>
+
+                <div class="middle-controls">
+                    <button class="control-btn" onclick="setDirection('LEFT')">◀</button>
+                    <button class="control-btn" onclick="setDirection('RIGHT')">▶</button>
+                </div>
+
+                <button class="control-btn" onclick="setDirection('DOWN')">▼</button>
+
+            </div>
+
         </div>
 
-        <div class="card leaderboard">
-            <h3>🏆 Топ игроков</h3>
+    </div>
+
+    <div class="right-panel">
+
+        <div class="leaderboard">
+
+            <h2>🏆 Топ игроков</h2>
 
             <table>
+
                 <tr>
                     <th>#</th>
                     <th>Игрок</th>
                     <th>Рекорд</th>
                 </tr>
 
-                {% for leader in leaders %}
-                <tr {% if leader[0] == username %} style="background: rgba(34,197,94,0.25);" {% endif %}>
+                {% for player in leaders %}
+                <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ leader[0] }}</td>
-                    <td>{{ leader[1] }}</td>
+                    <td>{{ player[0] }}</td>
+                    <td>{{ player[1] }}</td>
                 </tr>
                 {% endfor %}
+
             </table>
+
         </div>
 
     </div>
+
 </div>
 
 <script>
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const box = 20;
-const maxLevel = 10;
+const scoreText = document.getElementById("score");
+const levelText = document.getElementById("level");
+const foodValueText = document.getElementById("foodValue");
+const gameOverText = document.getElementById("gameOver");
+const bestScoreText = document.getElementById("bestScore");
+
+const gridSize = 20;
+const tileCount = canvas.width / gridSize;
+
+let snake = [];
+let food = {};
+let dx = 1;
+let dy = 0;
 
 let score = 0;
-let level = 1;
-let eatenFood = 0;
-let foodPoints = 1;
+let bestScore = parseInt(bestScoreText.innerText);
 
-let game;
+let foodValue = 1;
+let level = 1;
+
 let speed = 150;
-let direction = "RIGHT";
+let gameLoop = null;
 let gameStarted = false;
 
-let snake = [{ x: 200, y: 200 }];
-let food = generateFood();
-
-document.addEventListener("keydown", changeDirection);
-
 function startGame() {
-    if (gameStarted) return;
 
-    gameStarted = true;
-    document.getElementById("startButton").style.display = "none";
-    game = setInterval(drawGame, speed);
-}
-
-function changeDirection(e) {
-    const key = e.key.toLowerCase();
-
-    if ((key === "arrowup" || key === "w") && direction !== "DOWN") {
-        direction = "UP";
-    } else if ((key === "arrowdown" || key === "s") && direction !== "UP") {
-        direction = "DOWN";
-    } else if ((key === "arrowleft" || key === "a") && direction !== "RIGHT") {
-        direction = "LEFT";
-    } else if ((key === "arrowright" || key === "d") && direction !== "LEFT") {
-        direction = "RIGHT";
-    }
-}
-
-function generateFood() {
-    return {
-        x: Math.floor(Math.random() * 20) * box,
-        y: Math.floor(Math.random() * 20) * box
-    };
-}
-
-function saveScore(finalScore) {
-    fetch("/save_score", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ score: finalScore })
-    });
-}
-
-function collision(head, body) {
-    return body.some(segment => segment.x === head.x && segment.y === head.y);
-}
-
-function updateLevel() {
-    const newLevel = Math.floor(eatenFood / 5) + 1;
-
-    if (newLevel > level) {
-        level = newLevel;
-        speed = Math.max(60, speed - 15);
-
-        clearInterval(game);
-        game = setInterval(drawGame, speed);
-
-        document.getElementById("level").textContent = level;
-    }
-
-    if (level >= maxLevel) {
-        winGame();
-    }
-}
-
-function updateGeometricProgression() {
-    foodPoints = Math.pow(2, level - 1);
-    document.getElementById("foodPoints").textContent = foodPoints;
-}
-
-function endGame() {
-    clearInterval(game);
-    saveScore(score);
-
-    document.getElementById("gameOverText").style.display = "block";
-    document.getElementById("restartButton").style.display = "inline-block";
-}
-
-function winGame() {
-    clearInterval(game);
-    saveScore(score);
-
-    document.getElementById("winText").style.display = "block";
-    document.getElementById("restartButton").style.display = "inline-block";
-}
-
-function drawRoundedRect(x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.fill();
-}
-
-function drawGame() {
-    const bgColors = [
-        "#020617",
-        "#052e16",
-        "#064e3b",
-        "#164e63",
-        "#312e81",
-        "#581c87",
-        "#701a75",
-        "#7f1d1d",
-        "#78350f",
-        "#365314"
+    snake = [
+        {x: 10, y: 10}
     ];
 
-    ctx.fillStyle = bgColors[(level - 1) % bgColors.length];
+    dx = 1;
+    dy = 0;
+
+    score = 0;
+    level = 1;
+    foodValue = 1;
+    speed = 150;
+
+    scoreText.innerText = score;
+    levelText.innerText = level;
+    foodValueText.innerText = foodValue;
+
+    gameOverText.style.display = "none";
+
+    generateFood();
+
+    if(gameLoop){
+        clearInterval(gameLoop);
+    }
+
+    gameLoop = setInterval(drawGame, speed);
+
+    gameStarted = true;
+}
+
+document.getElementById("startBtn").addEventListener("click", startGame);
+
+function drawGame() {
+
+    moveSnake();
+
+    if(checkCollision()) {
+        endGame();
+        return;
+    }
+
+    drawBackground();
+
+    drawFood();
+
+    drawSnake();
+}
+
+function drawBackground() {
+
+    ctx.fillStyle = "#04122b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
-    for (let i = 0; i <= canvas.width; i += box) {
+    ctx.strokeStyle = "rgba(0,255,150,0.08)";
+
+    for(let i = 0; i < canvas.width; i += 20){
         ctx.beginPath();
         ctx.moveTo(i, 0);
         ctx.lineTo(i, canvas.height);
@@ -213,83 +228,258 @@ function drawGame() {
         ctx.lineTo(canvas.width, i);
         ctx.stroke();
     }
+}
 
-    ctx.beginPath();
-    ctx.fillStyle = "#ef4444";
-    ctx.shadowColor = "#ef4444";
-    ctx.shadowBlur = 18;
-    ctx.arc(food.x + box / 2, food.y + box / 2, box / 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+function moveSnake() {
 
-    for (let i = 0; i < snake.length; i++) {
-        const part = snake[i];
+    const head = {
+        x: snake[0].x + dx,
+        y: snake[0].y + dy
+    };
 
-        ctx.fillStyle = i === 0 ? "#84cc16" : (i % 2 === 0 ? "#22c55e" : "#16a34a");
-        drawRoundedRect(part.x + 2, part.y + 2, box - 4, box - 4, 7);
+    snake.unshift(head);
 
-        if (i === 0) {
-            ctx.fillStyle = "white";
+    if(head.x === food.x && head.y === food.y){
 
-            if (direction === "RIGHT") {
-                ctx.beginPath();
-                ctx.arc(part.x + 14, part.y + 6, 2, 0, Math.PI * 2);
-                ctx.arc(part.x + 14, part.y + 14, 2, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (direction === "LEFT") {
-                ctx.beginPath();
-                ctx.arc(part.x + 6, part.y + 6, 2, 0, Math.PI * 2);
-                ctx.arc(part.x + 6, part.y + 14, 2, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (direction === "UP") {
-                ctx.beginPath();
-                ctx.arc(part.x + 6, part.y + 6, 2, 0, Math.PI * 2);
-                ctx.arc(part.x + 14, part.y + 6, 2, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (direction === "DOWN") {
-                ctx.beginPath();
-                ctx.arc(part.x + 6, part.y + 14, 2, 0, Math.PI * 2);
-                ctx.arc(part.x + 14, part.y + 14, 2, 0, Math.PI * 2);
-                ctx.fill();
+        score += foodValue;
+
+        scoreText.innerText = score;
+
+        if(score > bestScore){
+            bestScore = score;
+            bestScoreText.innerText = bestScore;
+        }
+
+        if(score % 5 === 0){
+
+            level++;
+
+            levelText.innerText = level;
+
+            foodValue *= 2;
+
+            foodValueText.innerText = foodValue;
+
+            if(speed > 60){
+                speed -= 10;
+
+                clearInterval(gameLoop);
+                gameLoop = setInterval(drawGame, speed);
             }
         }
-    }
 
-    let snakeX = snake[0].x;
-    let snakeY = snake[0].y;
+        generateFood();
 
-    if (direction === "UP") snakeY -= box;
-    if (direction === "DOWN") snakeY += box;
-    if (direction === "LEFT") snakeX -= box;
-    if (direction === "RIGHT") snakeX += box;
-
-    if (snakeX === food.x && snakeY === food.y) {
-        score += foodPoints;
-        eatenFood++;
-
-        updateLevel();
-        updateGeometricProgression();
-
-        document.getElementById("score").textContent = score;
-
-        food = generateFood();
     } else {
         snake.pop();
     }
+}
 
-    let newHead = { x: snakeX, y: snakeY };
+function drawSnake() {
 
-    if (
-        snakeX < 0 || snakeY < 0 ||
-        snakeX >= canvas.width || snakeY >= canvas.height ||
-        collision(newHead, snake)
-    ) {
-        endGame();
-        return;
+    snake.forEach((part, index) => {
+
+        if(index === 0){
+
+            ctx.fillStyle = "#b7ff00";
+
+        } else {
+
+            const gradient = ctx.createLinearGradient(
+                part.x * gridSize,
+                part.y * gridSize,
+                part.x * gridSize + gridSize,
+                part.y * gridSize + gridSize
+            );
+
+            gradient.addColorStop(0, "#00ff99");
+            gradient.addColorStop(1, "#00cc66");
+
+            ctx.fillStyle = gradient;
+        }
+
+        ctx.beginPath();
+
+        ctx.roundRect(
+            part.x * gridSize + 2,
+            part.y * gridSize + 2,
+            gridSize - 4,
+            gridSize - 4,
+            8
+        );
+
+        ctx.fill();
+
+        if(index === 0){
+
+            ctx.fillStyle = "#111";
+
+            ctx.beginPath();
+            ctx.arc(part.x * gridSize + 7, part.y * gridSize + 7, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(part.x * gridSize + 13, part.y * gridSize + 7, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+    });
+}
+
+function drawFood() {
+
+    ctx.fillStyle = "#ff3355";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        food.x * gridSize + 10,
+        food.y * gridSize + 10,
+        8,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+}
+
+function generateFood() {
+
+    food = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+    };
+}
+
+function checkCollision() {
+
+    const head = snake[0];
+
+    if(
+        head.x < 0 ||
+        head.y < 0 ||
+        head.x >= tileCount ||
+        head.y >= tileCount
+    ){
+        return true;
     }
 
-    snake.unshift(newHead);
+    for(let i = 1; i < snake.length; i++){
+
+        if(
+            snake[i].x === head.x &&
+            snake[i].y === head.y
+        ){
+            return true;
+        }
+    }
+
+    return false;
 }
+
+function endGame(){
+
+    clearInterval(gameLoop);
+
+    gameStarted = false;
+
+    gameOverText.style.display = "block";
+
+    fetch('/save_score', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({score: bestScore})
+    });
+}
+
+document.addEventListener("keydown", (event) => {
+
+    const key = event.key.toLowerCase();
+
+    if((key === "arrowup" || key === "w") && dy !== 1){
+        dx = 0;
+        dy = -1;
+    }
+
+    if((key === "arrowdown" || key === "s") && dy !== -1){
+        dx = 0;
+        dy = 1;
+    }
+
+    if((key === "arrowleft" || key === "a") && dx !== 1){
+        dx = -1;
+        dy = 0;
+    }
+
+    if((key === "arrowright" || key === "d") && dx !== -1){
+        dx = 1;
+        dy = 0;
+    }
+
+});
+
+function setDirection(direction){
+
+    if(direction === "UP" && dy !== 1){
+        dx = 0;
+        dy = -1;
+    }
+
+    if(direction === "DOWN" && dy !== -1){
+        dx = 0;
+        dy = 1;
+    }
+
+    if(direction === "LEFT" && dx !== 1){
+        dx = -1;
+        dy = 0;
+    }
+
+    if(direction === "RIGHT" && dx !== -1){
+        dx = 1;
+        dy = 0;
+    }
+}
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+canvas.addEventListener("touchstart", (e) => {
+
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+
+});
+
+canvas.addEventListener("touchend", (e) => {
+
+    let touchEndX = e.changedTouches[0].screenX;
+    let touchEndY = e.changedTouches[0].screenY;
+
+    let dxSwipe = touchEndX - touchStartX;
+    let dySwipe = touchEndY - touchStartY;
+
+    if(Math.abs(dxSwipe) > Math.abs(dySwipe)){
+
+        if(dxSwipe > 0){
+            setDirection("RIGHT");
+        } else {
+            setDirection("LEFT");
+        }
+
+    } else {
+
+        if(dySwipe > 0){
+            setDirection("DOWN");
+        } else {
+            setDirection("UP");
+        }
+    }
+
+});
+
 </script>
 
 </body>

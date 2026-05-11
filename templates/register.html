@@ -2,26 +2,57 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Регистрация</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON SNAKE — Регистрация</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="page">
-        <div class="card auth-card">
-            <h1>Snake Game</h1>
-            <h2>Регистрация</h2>
 
-            <form method="POST">
-                <input type="text" name="username" placeholder="Придумай логин" required>
-                <input type="password" name="password" placeholder="Придумай пароль" required>
-                <button type="submit">Зарегистрироваться</button>
-            </form>
+<div class="background-grid"></div>
 
-            <p>
-                Уже есть аккаунт?
-                <a href="/">Войти</a>
-            </p>
+<div class="main-wrapper">
+
+    <div class="glass-card auth-card">
+
+        <h1 class="title">NEON SNAKE</h1>
+
+        <div class="welcome">
+            Создание аккаунта
         </div>
+
+        <form method="POST">
+
+            <input
+                type="text"
+                name="username"
+                placeholder="Придумайте логин"
+                required
+            >
+
+            <input
+                type="password"
+                name="password"
+                placeholder="Придумайте пароль"
+                required
+            >
+
+            <button type="submit" class="play-btn">
+                Зарегистрироваться
+            </button>
+
+        </form>
+
+        <div style="margin-top:20px;">
+            Уже есть аккаунт?
+            <a href="/" style="color:#56ffb1;">
+                Войти
+            </a>
+        </div>
+
     </div>
+
+</div>
+
 </body>
 </html>
