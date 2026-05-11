@@ -100,6 +100,9 @@ const bestScoreText = document.getElementById("bestScore");
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const finalLevel = 10;
+const skinHead = "{{ skin_data.head }}";
+const skinBody1 = "{{ skin_data.body1 }}";
+const skinBody2 = "{{ skin_data.body2 }}";
 
 let snake = [];
 let food = {};
@@ -306,20 +309,21 @@ function drawObstacles() {
 
 function drawSnake() {
     snake.forEach((part, index) => {
-        if (index === 0) {
-            ctx.fillStyle = "#b7ff00";
-        } else {
-            const gradient = ctx.createLinearGradient(
-                part.x * gridSize,
-                part.y * gridSize,
-                part.x * gridSize + gridSize,
-                part.y * gridSize + gridSize
-            );
+     if (index === 0) {
+    ctx.fillStyle = skinHead;
+} else {
+    const gradient = ctx.createLinearGradient(
+        part.x * gridSize,
+        part.y * gridSize,
+        part.x * gridSize + gridSize,
+        part.y * gridSize + gridSize
+    );
 
-            gradient.addColorStop(0, "#00ff99");
-            gradient.addColorStop(1, "#00cc66");
+    gradient.addColorStop(0, skinBody1);
+    gradient.addColorStop(1, skinBody2);
 
-            ctx.fillStyle = gradient;
+    ctx.fillStyle = gradient;
+}
         }
 
         drawRoundedRect(
