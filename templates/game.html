@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEON SNAKE</title>
-
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -15,7 +14,7 @@
 
     <div class="left-panel">
 
-        <div class="glass-card">
+        <div class="glass-card" id="gameContainer">
 
             <h1 class="title">NEON SNAKE</h1>
 
@@ -41,17 +40,20 @@
                 </p>
 
                 <p>
-                    Очки растут по геометрической прогрессии:
+                    С ростом уровня появляются заборчики. Столкновение с ними завершает игру.
+                </p>
+
+                <p>
+                    Очки начисляются по геометрической прогрессии:
                     1 → 2 → 4 → 8 → 16...
                 </p>
 
                 <p>
-                    Цель: пройти как можно дальше.
+                    Цель: пройти до 10 уровня.
                 </p>
             </div>
 
             <div class="stats">
-
                 <div class="stat-box">
                     <span>Рекорд</span>
                     <strong id="bestScore">{{ best_score }}</strong>
@@ -71,22 +73,17 @@
                     <span>Очки за еду</span>
                     <strong id="foodValue">1</strong>
                 </div>
-
             </div>
 
-            <button id="startBtn" class="play-btn">
-                Начать игру
-            </button>
+            <button id="startBtn" class="play-btn">Начать игру</button>
+            <button class="play-btn" onclick="toggleFullscreen()">Полный экран</button>
 
             <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-            <div id="gameOver" class="game-over">
-                Игра окончена!
-            </div>
+            <div id="gameOver" class="game-over">Игра окончена!</div>
+            <div id="winText" class="game-over" style="color:#56ffb1;">Победа! Ты дошёл до 10 уровня!</div>
 
-            <!-- МОБИЛЬНЫЕ КНОПКИ -->
             <div class="mobile-controls">
-
                 <button class="control-btn" onclick="setDirection('UP')">▲</button>
 
                 <div class="middle-controls">
@@ -95,7 +92,6 @@
                 </div>
 
                 <button class="control-btn" onclick="setDirection('DOWN')">▼</button>
-
             </div>
 
         </div>
@@ -103,13 +99,10 @@
     </div>
 
     <div class="right-panel">
-
         <div class="leaderboard">
-
             <h2>🏆 Топ игроков</h2>
 
             <table>
-
                 <tr>
                     <th>#</th>
                     <th>Игрок</th>
@@ -123,17 +116,13 @@
                     <td>{{ player[1] }}</td>
                 </tr>
                 {% endfor %}
-
             </table>
-
         </div>
-
     </div>
 
 </div>
 
 <script>
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -141,13 +130,17 @@ const scoreText = document.getElementById("score");
 const levelText = document.getElementById("level");
 const foodValueText = document.getElementById("foodValue");
 const gameOverText = document.getElementById("gameOver");
+const winText = document.getElementById("winText");
 const bestScoreText = document.getElementById("bestScore");
 
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
+const finalLevel = 10;
 
 let snake = [];
 let food = {};
+let obstacles = [];
+
 let dx = 1;
 let dy = 0;
 
@@ -156,22 +149,26 @@ let bestScore = parseInt(bestScoreText.innerText);
 
 let foodValue = 1;
 let level = 1;
+let eatenFood = 0;
 
 let speed = 150;
 let gameLoop = null;
 let gameStarted = false;
 
-function startGame() {
+gameOverText.style.display = "none";
+winText.style.display = "none";
 
-    snake = [
-        {x: 10, y: 10}
-    ];
+document.getElementById("startBtn").addEventListener("click", startGame);
+
+function startGame() {
+    snake = [{x: 10, y: 10}];
 
     dx = 1;
     dy = 0;
 
     score = 0;
     level = 1;
+    eatenFood = 0;
     foodValue = 1;
     speed = 150;
 
@@ -180,44 +177,53 @@ function startGame() {
     foodValueText.innerText = foodValue;
 
     gameOverText.style.display = "none";
+    winText.style.display = "none";
 
+    obstacles = generateObstacles(level);
     generateFood();
 
-    if(gameLoop){
+    if (gameLoop) {
         clearInterval(gameLoop);
     }
 
     gameLoop = setInterval(drawGame, speed);
-
     gameStarted = true;
 }
 
-document.getElementById("startBtn").addEventListener("click", startGame);
-
 function drawGame() {
-
     moveSnake();
 
-    if(checkCollision()) {
+    if (checkCollision()) {
         endGame();
         return;
     }
 
     drawBackground();
-
+    drawObstacles();
     drawFood();
-
     drawSnake();
 }
 
 function drawBackground() {
+    const levelColors = [
+        "#04122b",
+        "#04271e",
+        "#05362a",
+        "#063f3a",
+        "#083550",
+        "#10245c",
+        "#25145c",
+        "#3b145c",
+        "#4a1835",
+        "#4a2208"
+    ];
 
-    ctx.fillStyle = "#04122b";
+    ctx.fillStyle = levelColors[(level - 1) % levelColors.length];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.strokeStyle = "rgba(0,255,150,0.08)";
 
-    for(let i = 0; i < canvas.width; i += 20){
+    for (let i = 0; i < canvas.width; i += gridSize) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
         ctx.lineTo(i, canvas.height);
@@ -231,7 +237,6 @@ function drawBackground() {
 }
 
 function moveSnake() {
-
     const head = {
         x: snake[0].x + dx,
         y: snake[0].y + dy
@@ -239,52 +244,103 @@ function moveSnake() {
 
     snake.unshift(head);
 
-    if(head.x === food.x && head.y === food.y){
-
+    if (head.x === food.x && head.y === food.y) {
         score += foodValue;
+        eatenFood++;
 
-        scoreText.innerText = score;
-
-        if(score > bestScore){
+        if (score > bestScore) {
             bestScore = score;
             bestScoreText.innerText = bestScore;
         }
 
-        if(score % 5 === 0){
+        updateLevel();
 
-            level++;
-
-            levelText.innerText = level;
-
-            foodValue *= 2;
-
-            foodValueText.innerText = foodValue;
-
-            if(speed > 60){
-                speed -= 10;
-
-                clearInterval(gameLoop);
-                gameLoop = setInterval(drawGame, speed);
-            }
-        }
+        scoreText.innerText = score;
+        foodValueText.innerText = foodValue;
 
         generateFood();
-
     } else {
         snake.pop();
     }
 }
 
+function updateLevel() {
+    const newLevel = Math.floor(eatenFood / 5) + 1;
+
+    if (newLevel > level) {
+        level = newLevel;
+        levelText.innerText = level;
+
+        foodValue = Math.pow(2, level - 1);
+        speed = Math.max(55, speed - 12);
+
+        obstacles = generateObstacles(level);
+
+        clearInterval(gameLoop);
+        gameLoop = setInterval(drawGame, speed);
+    }
+
+    if (level >= finalLevel) {
+        winGame();
+    }
+}
+
+function generateObstacles(currentLevel) {
+    let list = [];
+
+    if (currentLevel >= 3) {
+        for (let y = 5; y <= 14; y++) {
+            list.push({x: 5, y: y});
+        }
+    }
+
+    if (currentLevel >= 5) {
+        for (let x = 9; x <= 15; x++) {
+            list.push({x: x, y: 6});
+        }
+    }
+
+    if (currentLevel >= 7) {
+        for (let y = 9; y <= 17; y++) {
+            list.push({x: 14, y: y});
+        }
+    }
+
+    if (currentLevel >= 9) {
+        for (let x = 3; x <= 10; x++) {
+            list.push({x: x, y: 15});
+        }
+
+        for (let x = 11; x <= 17; x++) {
+            list.push({x: x, y: 3});
+        }
+    }
+
+    return list;
+}
+
+function drawObstacles() {
+    ctx.fillStyle = "#00ccff";
+    ctx.shadowColor = "#00ccff";
+    ctx.shadowBlur = 12;
+
+    obstacles.forEach(block => {
+        ctx.fillRect(
+            block.x * gridSize + 2,
+            block.y * gridSize + 2,
+            gridSize - 4,
+            gridSize - 4
+        );
+    });
+
+    ctx.shadowBlur = 0;
+}
+
 function drawSnake() {
-
     snake.forEach((part, index) => {
-
-        if(index === 0){
-
+        if (index === 0) {
             ctx.fillStyle = "#b7ff00";
-
         } else {
-
             const gradient = ctx.createLinearGradient(
                 part.x * gridSize,
                 part.y * gridSize,
@@ -298,9 +354,7 @@ function drawSnake() {
             ctx.fillStyle = gradient;
         }
 
-        ctx.beginPath();
-
-        ctx.roundRect(
+        drawRoundedRect(
             part.x * gridSize + 2,
             part.y * gridSize + 2,
             gridSize - 4,
@@ -308,10 +362,7 @@ function drawSnake() {
             8
         );
 
-        ctx.fill();
-
-        if(index === 0){
-
+        if (index === 0) {
             ctx.fillStyle = "#111";
 
             ctx.beginPath();
@@ -322,16 +373,29 @@ function drawSnake() {
             ctx.arc(part.x * gridSize + 13, part.y * gridSize + 7, 2, 0, Math.PI * 2);
             ctx.fill();
         }
-
     });
 }
 
-function drawFood() {
+function drawRoundedRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.fill();
+}
 
+function drawFood() {
     ctx.fillStyle = "#ff3355";
+    ctx.shadowColor = "#ff3355";
+    ctx.shadowBlur = 18;
 
     ctx.beginPath();
-
     ctx.arc(
         food.x * gridSize + 10,
         food.y * gridSize + 10,
@@ -339,37 +403,58 @@ function drawFood() {
         0,
         Math.PI * 2
     );
-
     ctx.fill();
+
+    ctx.shadowBlur = 0;
 }
 
 function generateFood() {
+    let valid = false;
 
-    food = {
-        x: Math.floor(Math.random() * tileCount),
-        y: Math.floor(Math.random() * tileCount)
-    };
+    while (!valid) {
+        food = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount)
+        };
+
+        valid = true;
+
+        for (let part of snake) {
+            if (part.x === food.x && part.y === food.y) {
+                valid = false;
+                break;
+            }
+        }
+
+        for (let block of obstacles) {
+            if (block.x === food.x && block.y === food.y) {
+                valid = false;
+                break;
+            }
+        }
+    }
 }
 
 function checkCollision() {
-
     const head = snake[0];
 
-    if(
+    if (
         head.x < 0 ||
         head.y < 0 ||
         head.x >= tileCount ||
         head.y >= tileCount
-    ){
+    ) {
         return true;
     }
 
-    for(let i = 1; i < snake.length; i++){
+    for (let i = 1; i < snake.length; i++) {
+        if (snake[i].x === head.x && snake[i].y === head.y) {
+            return true;
+        }
+    }
 
-        if(
-            snake[i].x === head.x &&
-            snake[i].y === head.y
-        ){
+    for (let block of obstacles) {
+        if (block.x === head.x && block.y === head.y) {
             return true;
         }
     }
@@ -377,67 +462,75 @@ function checkCollision() {
     return false;
 }
 
-function endGame(){
-
+function endGame() {
     clearInterval(gameLoop);
-
     gameStarted = false;
 
     gameOverText.style.display = "block";
 
+    saveScore(score);
+}
+
+function winGame() {
+    clearInterval(gameLoop);
+    gameStarted = false;
+
+    winText.style.display = "block";
+
+    saveScore(score);
+}
+
+function saveScore(finalScore) {
     fetch('/save_score', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({score: bestScore})
+        body: JSON.stringify({score: finalScore})
     });
 }
 
 document.addEventListener("keydown", (event) => {
-
     const key = event.key.toLowerCase();
 
-    if((key === "arrowup" || key === "w") && dy !== 1){
+    if ((key === "arrowup" || key === "w") && dy !== 1) {
         dx = 0;
         dy = -1;
     }
 
-    if((key === "arrowdown" || key === "s") && dy !== -1){
+    if ((key === "arrowdown" || key === "s") && dy !== -1) {
         dx = 0;
         dy = 1;
     }
 
-    if((key === "arrowleft" || key === "a") && dx !== 1){
+    if ((key === "arrowleft" || key === "a") && dx !== 1) {
         dx = -1;
         dy = 0;
     }
 
-    if((key === "arrowright" || key === "d") && dx !== -1){
+    if ((key === "arrowright" || key === "d") && dx !== -1) {
         dx = 1;
         dy = 0;
     }
-
 });
 
-function setDirection(direction){
-
-    if(direction === "UP" && dy !== 1){
+function setDirection(direction) {
+    if (direction === "UP" && dy !== 1) {
         dx = 0;
         dy = -1;
     }
 
-    if(direction === "DOWN" && dy !== -1){
+    if (direction === "DOWN" && dy !== -1) {
         dx = 0;
         dy = 1;
     }
 
-    if(direction === "LEFT" && dx !== 1){
+    if (direction === "LEFT" && dx !== 1) {
         dx = -1;
         dy = 0;
     }
 
-    if(direction === "RIGHT" && dx !== -1){
+    if (direction === "RIGHT" && dx !== -1) {
         dx = 1;
         dy = 0;
     }
@@ -447,39 +540,45 @@ let touchStartX = 0;
 let touchStartY = 0;
 
 canvas.addEventListener("touchstart", (e) => {
-
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
-
 });
 
 canvas.addEventListener("touchend", (e) => {
-
     let touchEndX = e.changedTouches[0].screenX;
     let touchEndY = e.changedTouches[0].screenY;
 
     let dxSwipe = touchEndX - touchStartX;
     let dySwipe = touchEndY - touchStartY;
 
-    if(Math.abs(dxSwipe) > Math.abs(dySwipe)){
+    if (Math.abs(dxSwipe) < 25 && Math.abs(dySwipe) < 25) {
+        return;
+    }
 
-        if(dxSwipe > 0){
+    if (Math.abs(dxSwipe) > Math.abs(dySwipe)) {
+        if (dxSwipe > 0) {
             setDirection("RIGHT");
         } else {
             setDirection("LEFT");
         }
-
     } else {
-
-        if(dySwipe > 0){
+        if (dySwipe > 0) {
             setDirection("DOWN");
         } else {
             setDirection("UP");
         }
     }
-
 });
 
+function toggleFullscreen() {
+    const container = document.getElementById("gameContainer");
+
+    if (!document.fullscreenElement) {
+        container.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+}
 </script>
 
 </body>
