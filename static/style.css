@@ -1,0 +1,305 @@
+* {
+    box-sizing: border-box;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    color: #f8fafc;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(34,197,94,0.35), transparent 30%),
+        radial-gradient(circle at 80% 10%, rgba(59,130,246,0.25), transparent 25%),
+        linear-gradient(135deg, #020617, #022c22, #020617);
+    background-size: 200% 200%;
+    animation: bgMove 10s ease infinite;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(34,197,94,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34,197,94,0.08) 1px, transparent 1px);
+    background-size: 35px 35px;
+    pointer-events: none;
+    animation: gridMove 8s linear infinite;
+}
+
+.page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 35px;
+}
+
+.card {
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow:
+        0 0 35px rgba(34, 197, 94, 0.22),
+        inset 0 0 25px rgba(255,255,255,0.03);
+    backdrop-filter: blur(14px);
+    animation: fadeUp 0.6s ease;
+    transition: 0.25s;
+}
+
+.card:hover {
+    box-shadow:
+        0 0 45px rgba(34,197,94,0.35),
+        inset 0 0 30px rgba(255,255,255,0.04);
+}
+
+.auth-card {
+    width: 390px;
+    text-align: center;
+    margin-top: 90px;
+}
+
+h1 {
+    font-size: 38px;
+    margin-bottom: 8px;
+    color: #86efac;
+    text-shadow: 0 0 18px rgba(34,197,94,0.9);
+}
+
+h2, h3 {
+    margin-top: 0;
+    text-shadow: 0 0 10px rgba(34,197,94,0.45);
+}
+
+.game-title {
+    font-size: 52px;
+    font-weight: 900;
+    margin: 10px 0 0;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, #22c55e, #4ade80, #86efac, #22c55e);
+    background-size: 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: neonText 4s linear infinite, titlePulse 2s ease infinite;
+    text-shadow:
+        0 0 18px rgba(34,197,94,0.8),
+        0 0 40px rgba(34,197,94,0.4);
+}
+
+.subtitle {
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 18px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    font-size: 13px;
+}
+
+input {
+    width: 100%;
+    padding: 14px;
+    margin: 10px 0;
+    border: 1px solid rgba(34,197,94,0.35);
+    border-radius: 14px;
+    outline: none;
+    background: rgba(2, 6, 23, 0.85);
+    color: white;
+    font-size: 15px;
+    transition: 0.25s;
+}
+
+input:focus {
+    border-color: #22c55e;
+    box-shadow: 0 0 18px rgba(34,197,94,0.45);
+}
+
+button {
+    padding: 13px 20px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.25s;
+    box-shadow: 0 0 14px rgba(34,197,94,0.35);
+}
+
+button:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 0 28px rgba(34,197,94,0.85);
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+a {
+    color: #86efac;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.game-layout {
+    display: grid;
+    grid-template-columns: 640px 320px;
+    gap: 28px;
+    align-items: start;
+}
+
+canvas {
+    background: #020617;
+    border: 3px solid #22c55e;
+    border-radius: 20px;
+    box-shadow:
+        0 0 35px rgba(34, 197, 94, 0.55),
+        inset 0 0 35px rgba(34, 197, 94, 0.1);
+    animation: canvasPulse 2s ease infinite;
+}
+
+.stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.stat-box {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(34,197,94,0.22);
+    padding: 12px 14px;
+    border-radius: 15px;
+    min-width: 120px;
+    box-shadow: inset 0 0 18px rgba(255,255,255,0.03);
+    transition: 0.25s;
+}
+
+.stat-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 18px rgba(34,197,94,0.35);
+}
+
+.stat-box b {
+    color: #86efac;
+}
+
+.instruction {
+    padding: 18px;
+    margin-bottom: 16px;
+    background: rgba(2, 6, 23, 0.5);
+}
+
+.leaderboard {
+    position: sticky;
+    top: 30px;
+}
+
+.leaderboard table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard th,
+.leaderboard td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.leaderboard th {
+    color: #86efac;
+}
+
+.leaderboard tr:hover {
+    background: rgba(34,197,94,0.12);
+}
+
+.game-over {
+    color: #f87171;
+    animation: dangerPulse 0.9s infinite;
+}
+
+.logout {
+    background: linear-gradient(135deg, #ef4444, #991b1b);
+    box-shadow: 0 0 15px rgba(239,68,68,0.35);
+}
+
+.logout:hover {
+    box-shadow: 0 0 28px rgba(239,68,68,0.8);
+}
+
+@keyframes bgMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes gridMove {
+    from { background-position: 0 0; }
+    to { background-position: 35px 35px; }
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(22px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes dangerPulse {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 12px rgba(248,113,113,0.8);
+    }
+    50% {
+        opacity: 0.45;
+        text-shadow: 0 0 22px rgba(248,113,113,1);
+    }
+}
+
+@keyframes canvasPulse {
+    0%, 100% {
+        box-shadow:
+            0 0 20px rgba(34,197,94,0.4),
+            0 0 60px rgba(34,197,94,0.15);
+    }
+    50% {
+        box-shadow:
+            0 0 40px rgba(34,197,94,0.9),
+            0 0 90px rgba(34,197,94,0.35);
+    }
+}
+
+@keyframes neonText {
+    0% { background-position: 0%; }
+    100% { background-position: 300%; }
+}
+
+@keyframes titlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+@media (max-width: 1000px) {
+    .game-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .leaderboard {
+        position: static;
+    }
+
+    canvas {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+    }
+}

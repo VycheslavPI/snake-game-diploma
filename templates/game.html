@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>NEON SNAKE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="page">
+    <div class="game-layout">
+
+        <div class="card">
+            <h2>Добро пожаловать, {{ username }}</h2>
+
+            <button class="logout" onclick="location.href='/logout'">Выйти</button>
+
+            <h1 class="game-title">NEON SNAKE</h1>
+            <div class="subtitle">Cyber Edition</div>
+
+            <div class="card instruction">
+                <h3>Инструкция</h3>
+                <p>Управление: стрелки или клавиши W-A-S-D.</p>
+                <p>Собирай еду, увеличивай счёт и переходи на новые уровни.</p>
+                <p>Каждые 5 яблок уровень повышается, а скорость змейки увеличивается.</p>
+                <p>Очки начисляются по геометрической прогрессии по уровням: 1, 2, 4, 8, 16...</p>
+                <p>Цель: дойти до 10 уровня.</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-box">Рекорд: <b>{{ best_score }}</b></div>
+                <div class="stat-box">Счёт: <b id="score">0</b></div>
+                <div class="stat-box">Уровень: <b id="level">1</b></div>
+                <div class="stat-box">Очки за еду: <b id="foodPoints">1</b></div>
+            </div>
+
+            <button id="startButton" onclick="startGame()">Начать игру</button>
+            <button id="restartButton" onclick="location.reload()" style="display:none;">Играть заново</button>
+
+            <br><br>
+
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+            <h3 id="gameOverText" class="game-over" style="display:none;">Игра окончена!</h3>
+            <h3 id="winText" style="display:none; color:#22c55e;">Победа! Ты прошёл игру!</h3>
+        </div>
+
+        <div class="card leaderboard">
+            <h3>🏆 Топ игроков</h3>
+
+            <table>
+                <tr>
+                    <th>#</th>
+                    <th>Игрок</th>
+                    <th>Рекорд</th>
+                </tr>
+
+                {% for leader in leaders %}
+                <tr {% if leader[0] == username %} style="background: rgba(34,197,94,0.25);" {% endif %}>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ leader[0] }}</td>
+                    <td>{{ leader[1] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const box = 20;
+const maxLevel = 10;
+
+let score = 0;
+let level = 1;
+let eatenFood = 0;
+let foodPoints = 1;
+
+let game;
+let speed = 150;
+let direction = "RIGHT";
+let gameStarted = false;
+
+let snake = [{ x: 200, y: 200 }];
+let food = generateFood();
+
+document.addEventListener("keydown", changeDirection);
+
+function startGame() {
+    if (gameStarted) return;
+
+    gameStarted = true;
+    document.getElementById("startButton").style.display = "none";
+    game = setInterval(drawGame, speed);
+}
+
+function changeDirection(e) {
+    const key = e.key.toLowerCase();
+
+    if ((key === "arrowup" || key === "w") && direction !== "DOWN") {
+        direction = "UP";
+    } else if ((key === "arrowdown" || key === "s") && direction !== "UP") {
+        direction = "DOWN";
+    } else if ((key === "arrowleft" || key === "a") && direction !== "RIGHT") {
+        direction = "LEFT";
+    } else if ((key === "arrowright" || key === "d") && direction !== "LEFT") {
+        direction = "RIGHT";
+    }
+}
+
+function generateFood() {
+    return {
+        x: Math.floor(Math.random() * 20) * box,
+        y: Math.floor(Math.random() * 20) * box
+    };
+}
+
+function saveScore(finalScore) {
+    fetch("/save_score", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ score: finalScore })
+    });
+}
+
+function collision(head, body) {
+    return body.some(segment => segment.x === head.x && segment.y === head.y);
+}
+
+function updateLevel() {
+    const newLevel = Math.floor(eatenFood / 5) + 1;
+
+    if (newLevel > level) {
+        level = newLevel;
+        speed = Math.max(60, speed - 15);
+
+        clearInterval(game);
+        game = setInterval(drawGame, speed);
+
+        document.getElementById("level").textContent = level;
+    }
+
+    if (level >= maxLevel) {
+        winGame();
+    }
+}
+
+function updateGeometricProgression() {
+    foodPoints = Math.pow(2, level - 1);
+    document.getElementById("foodPoints").textContent = foodPoints;
+}
+
+function endGame() {
+    clearInterval(game);
+    saveScore(score);
+
+    document.getElementById("gameOverText").style.display = "block";
+    document.getElementById("restartButton").style.display = "inline-block";
+}
+
+function winGame() {
+    clearInterval(game);
+    saveScore(score);
+
+    document.getElementById("winText").style.display = "block";
+    document.getElementById("restartButton").style.display = "inline-block";
+}
+
+function drawRoundedRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.fill();
+}
+
+function drawGame() {
+    const bgColors = [
+        "#020617",
+        "#052e16",
+        "#064e3b",
+        "#164e63",
+        "#312e81",
+        "#581c87",
+        "#701a75",
+        "#7f1d1d",
+        "#78350f",
+        "#365314"
+    ];
+
+    ctx.fillStyle = bgColors[(level - 1) % bgColors.length];
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
+    for (let i = 0; i <= canvas.width; i += box) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.fillStyle = "#ef4444";
+    ctx.shadowColor = "#ef4444";
+    ctx.shadowBlur = 18;
+    ctx.arc(food.x + box / 2, food.y + box / 2, box / 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    for (let i = 0; i < snake.length; i++) {
+        const part = snake[i];
+
+        ctx.fillStyle = i === 0 ? "#84cc16" : (i % 2 === 0 ? "#22c55e" : "#16a34a");
+        drawRoundedRect(part.x + 2, part.y + 2, box - 4, box - 4, 7);
+
+        if (i === 0) {
+            ctx.fillStyle = "white";
+
+            if (direction === "RIGHT") {
+                ctx.beginPath();
+                ctx.arc(part.x + 14, part.y + 6, 2, 0, Math.PI * 2);
+                ctx.arc(part.x + 14, part.y + 14, 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (direction === "LEFT") {
+                ctx.beginPath();
+                ctx.arc(part.x + 6, part.y + 6, 2, 0, Math.PI * 2);
+                ctx.arc(part.x + 6, part.y + 14, 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (direction === "UP") {
+                ctx.beginPath();
+                ctx.arc(part.x + 6, part.y + 6, 2, 0, Math.PI * 2);
+                ctx.arc(part.x + 14, part.y + 6, 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (direction === "DOWN") {
+                ctx.beginPath();
+                ctx.arc(part.x + 6, part.y + 14, 2, 0, Math.PI * 2);
+                ctx.arc(part.x + 14, part.y + 14, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    let snakeX = snake[0].x;
+    let snakeY = snake[0].y;
+
+    if (direction === "UP") snakeY -= box;
+    if (direction === "DOWN") snakeY += box;
+    if (direction === "LEFT") snakeX -= box;
+    if (direction === "RIGHT") snakeX += box;
+
+    if (snakeX === food.x && snakeY === food.y) {
+        score += foodPoints;
+        eatenFood++;
+
+        updateLevel();
+        updateGeometricProgression();
+
+        document.getElementById("score").textContent = score;
+
+        food = generateFood();
+    } else {
+        snake.pop();
+    }
+
+    let newHead = { x: snakeX, y: snakeY };
+
+    if (
+        snakeX < 0 || snakeY < 0 ||
+        snakeX >= canvas.width || snakeY >= canvas.height ||
+        collision(newHead, snake)
+    ) {
+        endGame();
+        return;
+    }
+
+    snake.unshift(newHead);
+}
+</script>
+
+</body>
+</html>
