@@ -2,7 +2,7 @@
     margin:0;
     padding:0;
     box-sizing:border-box;
-    font-family:Arial;
+    font-family:Arial, sans-serif;
 }
 
 body{
@@ -19,59 +19,68 @@ body{
     background:
     linear-gradient(rgba(0,255,150,0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0,255,150,0.06) 1px, transparent 1px);
-
     background-size:40px 40px;
     z-index:-1;
+    animation:gridMove 12s linear infinite;
 }
 
 .main-wrapper{
     width:100%;
-    max-width:1400px;
+    min-height:100vh;
+    max-width:1500px;
     margin:auto;
     display:flex;
-    gap:30px;
-    padding:40px 20px;
-    align-items:flex-start;
     justify-content:center;
+    align-items:center;
+    gap:40px;
+    padding:40px 20px;
     flex-wrap:wrap;
 }
 
 .glass-card,
 .leaderboard{
-    background:rgba(0,10,30,0.88);
-    border:1px solid rgba(0,255,170,0.2);
-    border-radius:24px;
-    box-shadow:0 0 40px rgba(0,255,150,0.15);
-    backdrop-filter:blur(12px);
+    background:rgba(0,10,30,0.9);
+    border:1px solid rgba(0,255,170,0.22);
+    border-radius:28px;
+    box-shadow:
+        0 0 40px rgba(0,255,150,0.18),
+        0 0 90px rgba(0,255,150,0.08);
+    backdrop-filter:blur(14px);
+    animation:fadeIn 0.8s ease;
 }
 
 .glass-card{
     width:100%;
-    max-width:700px;
-    padding:25px;
+    max-width:850px;
+    padding:35px;
 }
 
 .leaderboard{
-    width:300px;
-    padding:25px;
+    width:320px;
+    padding:28px;
 }
 
 .title{
     color:#4dff9c;
     margin-bottom:10px;
+    font-size:44px;
+    text-shadow:
+        0 0 12px rgba(0,255,150,0.9),
+        0 0 35px rgba(0,255,150,0.35);
 }
 
 .welcome{
     margin-bottom:20px;
     font-size:18px;
+    color:#dfffee;
 }
 
 .instructions{
-    margin:20px 0;
-    padding:20px;
-    border-radius:18px;
-    background:#05142d;
-    border:1px solid rgba(0,255,150,0.1);
+    margin:22px 0;
+    padding:22px;
+    border-radius:20px;
+    background:rgba(5,20,45,0.9);
+    border:1px solid rgba(0,255,150,0.15);
 }
 
 .instructions h3{
@@ -95,8 +104,15 @@ body{
     background:#13233f;
     padding:15px;
     border-radius:16px;
-    min-width:120px;
+    min-width:130px;
     text-align:center;
+    border:1px solid rgba(0,255,150,0.14);
+    transition:0.25s;
+}
+
+.stat-box:hover{
+    transform:translateY(-3px);
+    box-shadow:0 0 18px rgba(0,255,150,0.25);
 }
 
 .stat-box span{
@@ -119,15 +135,17 @@ body{
 
 .play-btn{
     margin-bottom:20px;
-    padding:14px 28px;
-    border-radius:14px;
+    padding:14px 30px;
+    border-radius:16px;
     background:linear-gradient(45deg,#00ff88,#00ccff);
-    color:black;
+    color:#001014;
     font-weight:bold;
+    box-shadow:0 0 25px rgba(0,255,150,0.35);
 }
 
 .play-btn:hover{
-    transform:scale(1.05);
+    transform:scale(1.06);
+    box-shadow:0 0 35px rgba(0,255,150,0.65);
 }
 
 .logout-btn{
@@ -135,20 +153,32 @@ body{
     text-decoration:none;
     background:#ff3355;
     color:white;
-    padding:10px 20px;
-    border-radius:12px;
+    padding:11px 22px;
+    border-radius:14px;
     margin-bottom:20px;
+    box-shadow:0 0 18px rgba(255,51,85,0.35);
+}
+
+.logout-btn:hover{
+    transform:scale(1.04);
+    box-shadow:0 0 28px rgba(255,51,85,0.7);
 }
 
 canvas{
     width:100%;
-    max-width:400px;
+    max-width:520px;
     height:auto;
     aspect-ratio:1/1;
-    border-radius:20px;
+    display:block;
+    margin:25px auto;
+    border-radius:24px;
     border:3px solid #00ff99;
     background:#04122b;
-    box-shadow:0 0 30px rgba(0,255,150,0.3);
+    box-shadow:
+        0 0 25px rgba(0,255,150,0.35),
+        0 0 70px rgba(0,255,150,0.18);
+    animation:canvasGlow 2s infinite alternate;
+    touch-action:none;
 }
 
 .game-over{
@@ -156,6 +186,8 @@ canvas{
     color:#ff5577;
     font-size:24px;
     display:none;
+    text-align:center;
+    text-shadow:0 0 15px rgba(255,85,119,0.8);
 }
 
 table{
@@ -177,8 +209,12 @@ tr{
     border-bottom:1px solid rgba(255,255,255,0.08);
 }
 
+tr:hover{
+    background:rgba(0,255,150,0.08);
+}
+
 .mobile-controls{
-    margin-top:25px;
+    margin-top:20px;
     display:none;
     flex-direction:column;
     align-items:center;
@@ -197,18 +233,78 @@ tr{
     font-size:28px;
     background:#13233f;
     color:#4dff9c;
-    box-shadow:0 0 15px rgba(0,255,150,0.2);
+    box-shadow:0 0 15px rgba(0,255,150,0.25);
 }
 
 .control-btn:active{
     transform:scale(0.92);
 }
 
-@media(max-width:900px){
+input{
+    width:100%;
+    padding:14px;
+    margin:10px 0;
+    border:none;
+    border-radius:14px;
+    outline:none;
+    background:#06142c;
+    color:white;
+    border:1px solid rgba(0,255,150,0.2);
+}
 
+input:focus{
+    box-shadow:0 0 18px rgba(0,255,150,0.35);
+}
+
+.auth-card{
+    max-width:420px;
+    text-align:center;
+}
+
+@keyframes gridMove{
+    from{
+        background-position:0 0;
+    }
+    to{
+        background-position:40px 40px;
+    }
+}
+
+@keyframes canvasGlow{
+    from{
+        box-shadow:
+            0 0 20px rgba(0,255,150,0.25),
+            0 0 50px rgba(0,255,150,0.1);
+    }
+    to{
+        box-shadow:
+            0 0 40px rgba(0,255,150,0.55),
+            0 0 95px rgba(0,255,150,0.25);
+    }
+}
+
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+@media(max-width:900px){
     .main-wrapper{
         flex-direction:column;
         align-items:center;
+        justify-content:flex-start;
+        padding:22px 14px;
+    }
+
+    .glass-card{
+        padding:20px;
+        border-radius:22px;
     }
 
     .leaderboard{
@@ -220,20 +316,40 @@ tr{
         display:flex;
     }
 
-    .glass-card{
-        padding:18px;
+    .title{
+        font-size:32px;
+        text-align:center;
     }
 
-    .title{
-        font-size:28px;
+    .welcome{
+        text-align:center;
+        font-size:16px;
+    }
+
+    .instructions{
+        font-size:14px;
+    }
+
+    .stats{
+        gap:10px;
     }
 
     .stat-box{
-        flex:1;
-        min-width:140px;
+        flex:1 1 45%;
+        min-width:130px;
     }
 
     canvas{
         max-width:100%;
+        margin:20px auto;
+    }
+
+    .play-btn{
+        width:100%;
+    }
+
+    .logout-btn{
+        display:block;
+        text-align:center;
     }
 }
