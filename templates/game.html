@@ -16,7 +16,6 @@
         <div class="glass-card" id="gameContainer">
 
             <h1 class="title">NEON SNAKE</h1>
-
             <div class="welcome">Добро пожаловать, {{ username }}</div>
 
             <a href="/logout" class="logout-btn">Выйти</a>
@@ -65,7 +64,6 @@
     <div class="right-panel">
         <div class="leaderboard">
             <h2>🏆 Топ игроков</h2>
-
             <table>
                 <tr>
                     <th>#</th>
@@ -97,14 +95,15 @@ const gameOverText = document.getElementById("gameOver");
 const winText = document.getElementById("winText");
 const bestScoreText = document.getElementById("bestScore");
 
-const gridSize = 20;
-const tileCount = canvas.width / gridSize;
-const finalLevel = 10;
 const skinHead = "{{ skin_data.head }}";
 const skinBody1 = "{{ skin_data.body1 }}";
 const skinBody2 = "{{ skin_data.body2 }}";
 
-let snake = [];
+const gridSize = 20;
+const tileCount = canvas.width / gridSize;
+const finalLevel = 10;
+
+let snake = [{x: 10, y: 10}];
 let food = {};
 let obstacles = [];
 
@@ -112,7 +111,7 @@ let dx = 1;
 let dy = 0;
 
 let score = 0;
-let bestScore = parseInt(bestScoreText.innerText);
+let bestScore = parseInt(bestScoreText.innerText) || 0;
 
 let foodValue = 1;
 let level = 1;
@@ -120,6 +119,7 @@ let eatenFood = 0;
 
 let speed = 150;
 let gameLoop = null;
+let gameStarted = false;
 
 gameOverText.style.display = "none";
 winText.style.display = "none";
@@ -137,6 +137,7 @@ function startGame() {
     eatenFood = 0;
     foodValue = 1;
     speed = 150;
+    gameStarted = true;
 
     scoreText.innerText = score;
     levelText.innerText = level;
@@ -151,6 +152,7 @@ function startGame() {
     if (gameLoop) clearInterval(gameLoop);
 
     gameLoop = setInterval(drawGame, speed);
+    drawGame();
 }
 
 function drawGame() {
@@ -161,6 +163,10 @@ function drawGame() {
         return;
     }
 
+    drawScene();
+}
+
+function drawScene() {
     drawBackground();
     drawObstacles();
     drawFood();
@@ -192,6 +198,8 @@ function drawBackground() {
 }
 
 function moveSnake() {
+    if (!gameStarted) return;
+
     const head = {
         x: snake[0].x + dx,
         y: snake[0].y + dy
@@ -309,21 +317,24 @@ function drawObstacles() {
 
 function drawSnake() {
     snake.forEach((part, index) => {
-     if (index === 0) {
-    ctx.fillStyle = skinHead;
-} else {
-    const gradient = ctx.createLinearGradient(
-        part.x * gridSize,
-        part.y * gridSize,
-        part.x * gridSize + gridSize,
-        part.y * gridSize + gridSize
-    );
+        if (index === 0) {
+            ctx.fillStyle = skinHead;
+            ctx.shadowColor = skinHead;
+            ctx.shadowBlur = 18;
+        } else {
+            const gradient = ctx.createLinearGradient(
+                part.x * gridSize,
+                part.y * gridSize,
+                part.x * gridSize + gridSize,
+                part.y * gridSize + gridSize
+            );
 
-    gradient.addColorStop(0, skinBody1);
-    gradient.addColorStop(1, skinBody2);
+            gradient.addColorStop(0, skinBody1);
+            gradient.addColorStop(1, skinBody2);
 
-    ctx.fillStyle = gradient;
-}
+            ctx.fillStyle = gradient;
+            ctx.shadowColor = skinBody1;
+            ctx.shadowBlur = 14;
         }
 
         drawRoundedRect(
@@ -334,8 +345,20 @@ function drawSnake() {
             8
         );
 
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = "rgba(255,255,255,0.7)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(
+            part.x * gridSize + 3,
+            part.y * gridSize + 3,
+            gridSize - 6,
+            gridSize - 6
+        );
+
         if (index === 0) {
             ctx.fillStyle = "#111";
+
             ctx.beginPath();
             ctx.arc(part.x * gridSize + 7, part.y * gridSize + 7, 2, 0, Math.PI * 2);
             ctx.fill();
@@ -414,12 +437,14 @@ function checkCollision() {
 
 function endGame() {
     clearInterval(gameLoop);
+    gameStarted = false;
     gameOverText.style.display = "block";
     saveScore(score);
 }
 
 function winGame() {
     clearInterval(gameLoop);
+    gameStarted = false;
     winText.style.display = "block";
     saveScore(score);
 }
@@ -492,6 +517,9 @@ function toggleFullscreen() {
         document.exitFullscreen();
     }
 }
+
+generateFood();
+drawScene();
 </script>
 
 </body>
