@@ -38,8 +38,15 @@ SKINS = {
 }
 
 
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_PATH = os.path.join(BASE_DIR, "database.db")
+
 def get_db_connection():
-    return sqlite3.connect('database.db')
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.row_factory = sqlite3.Row
+    return connection
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -79,19 +86,31 @@ def register():
         cursor = connection.cursor()
 
         try:
-            cursor.execute(
-                '''
-                INSERT INTO users (username, password, coins, selected_skin, owned_skins)
-                VALUES (?, ?, 0, 'neon', 'neon')
-                ''',
-                (username, hashed_password)
-            )
-            connection.commit()
-            connection.close()
-            return redirect('/')
-        except sqlite3.IntegrityError:
-            connection.close()
-            return "Пользователь уже существует"
+    cursor.execute("""
+        INSERT INTO users
+        (username, password, best_score, coins, selected_skin, owned_skins)
+        VALUES (?, ?, 0, 0, 'neon', 'neon')
+    """, (username, hashed_password))
+
+    connection.commit()
+
+    cursor.execute(
+        'SELECT * FROM users WHERE username = ?',
+        (username,)
+    )
+
+    created_user = cursor.fetchone()
+
+    connection.close()
+
+    if created_user:
+        return redirect('/')
+    else:
+        return "Ошибка сохранения аккаунта"
+
+except sqlite3.IntegrityError:
+    connection.close()
+    return "Пользователь уже существует"
 
     return render_template('register.html')
 
