@@ -11,7 +11,6 @@
 <div class="background-grid"></div>
 
 <div class="shop-page">
-
     <div class="glass-card shop-card">
 
         <div class="shop-header">
@@ -31,29 +30,14 @@
         </div>
 
         <div class="skins-grid">
-
             {% for skin_id, skin in skins.items() %}
-
             <div class="skin-card">
 
                 <div class="snake-preview">
-
-                    <div class="preview-head"
-                         style="background: {{ skin.head }};">
-                    </div>
-
-                    <div class="preview-body"
-                         style="background: linear-gradient(45deg, {{ skin.body1 }}, {{ skin.body2 }});">
-                    </div>
-
-                    <div class="preview-body"
-                         style="background: linear-gradient(45deg, {{ skin.body1 }}, {{ skin.body2 }});">
-                    </div>
-
-                    <div class="preview-body"
-                         style="background: linear-gradient(45deg, {{ skin.body1 }}, {{ skin.body2 }});">
-                    </div>
-
+                    <div class="preview-head" data-color="{{ skin.head }}"></div>
+                    <div class="preview-body" data-color1="{{ skin.body1 }}" data-color2="{{ skin.body2 }}"></div>
+                    <div class="preview-body" data-color1="{{ skin.body1 }}" data-color2="{{ skin.body2 }}"></div>
+                    <div class="preview-body" data-color1="{{ skin.body1 }}" data-color2="{{ skin.body2 }}"></div>
                 </div>
 
                 <h2>{{ skin.name }}</h2>
@@ -63,36 +47,29 @@
                 </p>
 
                 {% if skin_id == selected_skin %}
-
-                    <button class="selected-btn">
-                        Выбран
-                    </button>
-
+                    <button class="selected-btn">Выбран</button>
                 {% elif skin_id in owned_skins %}
-
-                    <a href="/select_skin/{{ skin_id }}"
-                       class="play-btn">
-                        Выбрать
-                    </a>
-
+                    <a href="/select_skin/{{ skin_id }}" class="play-btn">Выбрать</a>
                 {% else %}
-
-                    <a href="/buy_skin/{{ skin_id }}"
-                       class="buy-btn">
-                        Купить
-                    </a>
-
+                    <a href="/buy_skin/{{ skin_id }}" class="buy-btn">Купить</a>
                 {% endif %}
 
             </div>
-
             {% endfor %}
-
         </div>
 
     </div>
-
 </div>
+
+<script>
+document.querySelectorAll(".preview-head").forEach(head => {
+    head.style.background = head.dataset.color;
+});
+
+document.querySelectorAll(".preview-body").forEach(body => {
+    body.style.background = `linear-gradient(45deg, ${body.dataset.color1}, ${body.dataset.color2})`;
+});
+</script>
 
 </body>
 </html>
