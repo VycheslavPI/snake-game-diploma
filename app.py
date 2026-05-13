@@ -1,14 +1,13 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import os
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_PATH = os.path.join(BASE_DIR, "database.db")
-
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 SKINS = {
     "neon": {
@@ -43,9 +42,10 @@ SKINS = {
 
 
 def get_db_connection():
-    connection = sqlite3.connect(DATABASE_PATH)
-    connection.row_factory = sqlite3.Row
-    return connection
+    return psycopg2.connect(
+        DATABASE_URL,
+        cursor_factory=psycopg2.extras.RealDictCursor
+    )
 
 
 def init_database():
@@ -54,7 +54,7 @@ def init_database():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             score INTEGER DEFAULT 0,
@@ -65,21 +65,8 @@ def init_database():
         )
     """)
 
-    columns = {
-        "score": "INTEGER DEFAULT 0",
-        "best_score": "INTEGER DEFAULT 0",
-        "coins": "INTEGER DEFAULT 0",
-        "selected_skin": "TEXT DEFAULT 'neon'",
-        "owned_skins": "TEXT DEFAULT 'neon'"
-    }
-
-    for column, column_type in columns.items():
-        try:
-            cursor.execute(f"ALTER TABLE users ADD COLUMN {column} {column_type}")
-        except sqlite3.OperationalError:
-            pass
-
     connection.commit()
+    cursor.close()
     connection.close()
 
 
@@ -96,19 +83,18 @@ def login():
         cursor = connection.cursor()
 
         cursor.execute(
-            "SELECT * FROM users WHERE username = ?",
+            "SELECT * FROM users WHERE username = %s",
             (username,)
         )
 
         user = cursor.fetchone()
+
+        cursor.close()
         connection.close()
 
-        if user:
-            saved_password = user["password"]
-
-            if check_password_hash(saved_password, password) or saved_password == password:
-                session["user"] = username
-                return redirect("/game")
+        if user and check_password_hash(user["password"], password):
+            session["user"] = username
+            return redirect("/game")
 
         return "Неверный логин или пароль"
 
@@ -130,15 +116,19 @@ def register():
             cursor.execute("""
                 INSERT INTO users
                 (username, password, score, best_score, coins, selected_skin, owned_skins)
-                VALUES (?, ?, 0, 0, 0, 'neon', 'neon')
+                VALUES (%s, %s, 0, 0, 0, 'neon', 'neon')
             """, (username, hashed_password))
 
             connection.commit()
+
+            cursor.close()
             connection.close()
 
             return redirect("/")
 
-        except sqlite3.IntegrityError:
+        except psycopg2.errors.UniqueViolation:
+            connection.rollback()
+            cursor.close()
             connection.close()
             return "Пользователь уже существует"
 
@@ -156,20 +146,17 @@ def game():
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT best_score, coins, selected_skin FROM users WHERE username = ?",
+        "SELECT best_score, coins, selected_skin FROM users WHERE username = %s",
         (username,)
     )
 
     user = cursor.fetchone()
 
     if not user:
+        cursor.close()
         connection.close()
         session.pop("user", None)
         return redirect("/")
-
-    best_score = user["best_score"]
-    coins = user["coins"]
-    selected_skin = user["selected_skin"]
 
     cursor.execute("""
         SELECT username, best_score
@@ -179,15 +166,17 @@ def game():
     """)
 
     leaders = cursor.fetchall()
+
+    cursor.close()
     connection.close()
 
-    skin_data = SKINS.get(selected_skin, SKINS["neon"])
+    skin_data = SKINS.get(user["selected_skin"], SKINS["neon"])
 
     return render_template(
         "game.html",
         username=username,
-        best_score=best_score,
-        coins=coins,
+        best_score=user["best_score"],
+        coins=user["coins"],
         leaders=leaders,
         skin_data=skin_data
     )
@@ -208,29 +197,29 @@ def save_score():
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT best_score, coins FROM users WHERE username = ?",
+        "SELECT best_score, coins FROM users WHERE username = %s",
         (username,)
     )
 
     user = cursor.fetchone()
 
     if not user:
+        cursor.close()
         connection.close()
         return jsonify({"status": "error"})
 
-    current_best = user["best_score"]
-    current_coins = user["coins"]
-
-    new_best = max(current_best, score)
-    new_coins = current_coins + earned_coins
+    new_best = max(user["best_score"], score)
+    new_coins = user["coins"] + earned_coins
 
     cursor.execute("""
         UPDATE users
-        SET best_score = ?, coins = ?
-        WHERE username = ?
+        SET best_score = %s, coins = %s
+        WHERE username = %s
     """, (new_best, new_coins, username))
 
     connection.commit()
+
+    cursor.close()
     connection.close()
 
     return jsonify({
@@ -250,26 +239,26 @@ def shop():
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT coins, selected_skin, owned_skins FROM users WHERE username = ?",
+        "SELECT coins, selected_skin, owned_skins FROM users WHERE username = %s",
         (username,)
     )
 
     user = cursor.fetchone()
+
+    cursor.close()
     connection.close()
 
     if not user:
         return redirect("/")
 
-    coins = user["coins"]
-    selected_skin = user["selected_skin"]
     owned_skins = user["owned_skins"].split(",")
 
     return render_template(
         "shop.html",
         username=username,
-        coins=coins,
+        coins=user["coins"],
         skins=SKINS,
-        selected_skin=selected_skin,
+        selected_skin=user["selected_skin"],
         owned_skins=owned_skins
     )
 
@@ -288,13 +277,14 @@ def buy_skin(skin_id):
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT coins, owned_skins FROM users WHERE username = ?",
+        "SELECT coins, owned_skins FROM users WHERE username = %s",
         (username,)
     )
 
     user = cursor.fetchone()
 
     if not user:
+        cursor.close()
         connection.close()
         return redirect("/")
 
@@ -302,6 +292,7 @@ def buy_skin(skin_id):
     owned_skins = user["owned_skins"].split(",")
 
     if skin_id in owned_skins:
+        cursor.close()
         connection.close()
         return redirect("/shop")
 
@@ -313,13 +304,15 @@ def buy_skin(skin_id):
 
         cursor.execute("""
             UPDATE users
-            SET coins = ?, owned_skins = ?
-            WHERE username = ?
+            SET coins = %s, owned_skins = %s
+            WHERE username = %s
         """, (coins, ",".join(owned_skins), username))
 
         connection.commit()
 
+    cursor.close()
     connection.close()
+
     return redirect("/shop")
 
 
@@ -337,13 +330,14 @@ def select_skin(skin_id):
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT owned_skins FROM users WHERE username = ?",
+        "SELECT owned_skins FROM users WHERE username = %s",
         (username,)
     )
 
     user = cursor.fetchone()
 
     if not user:
+        cursor.close()
         connection.close()
         return redirect("/")
 
@@ -351,12 +345,14 @@ def select_skin(skin_id):
 
     if skin_id in owned_skins:
         cursor.execute(
-            "UPDATE users SET selected_skin = ? WHERE username = ?",
+            "UPDATE users SET selected_skin = %s WHERE username = %s",
             (skin_id, username)
         )
         connection.commit()
 
+    cursor.close()
     connection.close()
+
     return redirect("/shop")
 
 
