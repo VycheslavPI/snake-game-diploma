@@ -24,7 +24,7 @@
                 <h3>Инструкция</h3>
                 <p>ПК → W A S D / Стрелки<br>Телефон → свайпы и кнопки</p>
                 <p>Каждые 5 яблок повышают уровень и скорость змейки.</p>
-                <p>С ростом уровня появляются разные заборчики. Столкновение с ними завершает игру.</p>
+                <p>С ростом уровня появляются заборчики. Столкновение с ними завершает игру.</p>
                 <p>Очки начисляются по геометрической прогрессии: 1 → 2 → 4 → 8 → 16...</p>
                 <p>Цель: пройти до 10 уровня.</p>
             </div>
@@ -60,28 +60,38 @@
 
         </div>
     </div>
-<div class="right-panel">
-    <div class="leaderboard">
-        <h2>🏆 Топ игроков</h2>
 
-        <table>
-            <tr>
-                <th>#</th>
-                <th>Игрок</th>
-                <th>Рекорд</th>
-            </tr>
+    <div class="right-panel">
+        <div class="leaderboard">
+            <h2>🏆 Топ игроков</h2>
 
-            {% for player in leaders %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ player.username }}</td>
-                <td>{{ player.best_score }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+            <table>
+                <tr>
+                    <th>#</th>
+                    <th>Игрок</th>
+                    <th>Рекорд</th>
+                </tr>
+
+                {% for player in leaders %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ player.username }}</td>
+                    <td>{{ player.best_score }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
+
 </div>
-</div>
+
+<audio id="eatSound">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="deathSound">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
@@ -94,6 +104,9 @@ const gameOverText = document.getElementById("gameOver");
 const winText = document.getElementById("winText");
 const bestScoreText = document.getElementById("bestScore");
 
+const eatSound = document.getElementById("eatSound");
+const deathSound = document.getElementById("deathSound");
+
 const skinHead = "{{ skin_data.head }}";
 const skinBody1 = "{{ skin_data.body1 }}";
 const skinBody2 = "{{ skin_data.body2 }}";
@@ -105,6 +118,7 @@ const finalLevel = 10;
 let snake = [{x: 10, y: 10}];
 let food = {};
 let obstacles = [];
+let particles = [];
 
 let dx = 1;
 let dy = 0;
@@ -127,6 +141,7 @@ document.getElementById("startBtn").addEventListener("click", startGame);
 
 function startGame() {
     snake = [{x: 10, y: 10}];
+    particles = [];
 
     dx = 1;
     dy = 0;
@@ -151,7 +166,7 @@ function startGame() {
     if (gameLoop) clearInterval(gameLoop);
 
     gameLoop = setInterval(drawGame, speed);
-    drawGame();
+    drawScene();
 }
 
 function drawGame() {
@@ -170,6 +185,7 @@ function drawScene() {
     drawObstacles();
     drawFood();
     drawSnake();
+    drawParticles();
 }
 
 function drawBackground() {
@@ -210,6 +226,14 @@ function moveSnake() {
         score += foodValue;
         eatenFood++;
 
+        playSound(eatSound);
+
+        createParticles(
+            food.x * gridSize + gridSize / 2,
+            food.y * gridSize + gridSize / 2,
+            "#ff3355"
+        );
+
         if (score > bestScore) {
             bestScore = score;
             bestScoreText.innerText = bestScore;
@@ -237,6 +261,8 @@ function updateLevel() {
         speed = Math.max(55, speed - 12);
 
         obstacles = generateObstacles(level);
+
+        createParticles(200, 200, "#00ccff");
 
         clearInterval(gameLoop);
         gameLoop = setInterval(drawGame, speed);
@@ -319,7 +345,7 @@ function drawSnake() {
         if (index === 0) {
             ctx.fillStyle = skinHead;
             ctx.shadowColor = skinHead;
-            ctx.shadowBlur = 18;
+            ctx.shadowBlur = 22;
         } else {
             const gradient = ctx.createLinearGradient(
                 part.x * gridSize,
@@ -333,7 +359,7 @@ function drawSnake() {
 
             ctx.fillStyle = gradient;
             ctx.shadowColor = skinBody1;
-            ctx.shadowBlur = 14;
+            ctx.shadowBlur = 16;
         }
 
         drawRoundedRect(
@@ -346,7 +372,7 @@ function drawSnake() {
 
         ctx.shadowBlur = 0;
 
-        ctx.strokeStyle = "rgba(255,255,255,0.7)";
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
         ctx.lineWidth = 1;
         ctx.strokeRect(
             part.x * gridSize + 3,
@@ -369,20 +395,6 @@ function drawSnake() {
     });
 }
 
-function drawRoundedRect(x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.fill();
-}
-
 function drawFood() {
     ctx.fillStyle = "#ff3355";
     ctx.shadowColor = "#ff3355";
@@ -393,6 +405,40 @@ function drawFood() {
     ctx.fill();
 
     ctx.shadowBlur = 0;
+}
+
+function createParticles(x, y, color) {
+    for (let i = 0; i < 18; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            dx: (Math.random() - 0.5) * 6,
+            dy: (Math.random() - 0.5) * 6,
+            life: 30,
+            color: color
+        });
+    }
+}
+
+function drawParticles() {
+    particles.forEach((p, index) => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life / 30;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life--;
+
+        if (p.life <= 0) {
+            particles.splice(index, 1);
+        }
+    });
 }
 
 function generateFood() {
@@ -437,14 +483,23 @@ function checkCollision() {
 function endGame() {
     clearInterval(gameLoop);
     gameStarted = false;
+
+    playSound(deathSound);
+    createParticles(snake[0].x * gridSize + 10, snake[0].y * gridSize + 10, "#ff3355");
+
     gameOverText.style.display = "block";
+
     saveScore(score);
 }
 
 function winGame() {
     clearInterval(gameLoop);
     gameStarted = false;
+
+    createParticles(200, 200, "#56ffb1");
+
     winText.style.display = "block";
+
     saveScore(score);
 }
 
@@ -454,6 +509,25 @@ function saveScore(finalScore) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({score: finalScore})
     });
+}
+
+function playSound(sound) {
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+}
+
+function drawRoundedRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.fill();
 }
 
 document.addEventListener("keydown", (event) => {
