@@ -60,28 +60,27 @@
 
         </div>
     </div>
+<div class="right-panel">
+    <div class="leaderboard">
+        <h2>🏆 Топ игроков</h2>
 
-    <div class="right-panel">
-        <div class="leaderboard">
-            <h2>🏆 Топ игроков</h2>
-            <table>
-                <tr>
-                    <th>#</th>
-                    <th>Игрок</th>
-                    <th>Рекорд</th>
-                </tr>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Игрок</th>
+                <th>Рекорд</th>
+            </tr>
 
-                {% for player in leaders %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ player[0] }}</td>
-                    <td>{{ player[1] }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
+            {% for player in leaders %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ player.username }}</td>
+                <td>{{ player.best_score }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     </div>
-
+</div>
 </div>
 
 <script>
