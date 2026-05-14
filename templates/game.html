@@ -1625,17 +1625,15 @@ canvas.addEventListener("touchend", (e) => {
 
 }, {passive: false});
 
-function toggleFullscreen() {
+}
 
+function toggleFullscreen() {
     const container =
         document.getElementById("gameContainer");
 
     if (!document.fullscreenElement) {
-
         container.requestFullscreen();
-
     } else {
-
         document.exitFullscreen();
     }
 }
