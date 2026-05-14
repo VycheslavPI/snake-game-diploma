@@ -15,7 +15,7 @@
 
         <div class="shop-header">
             <div>
-                <h1 class="title">МАГАЗИН СКИНОВ</h1>
+                <h1 class="title">МАГАЗИН</h1>
                 <p class="welcome">Игрок: {{ username }}</p>
             </div>
 
@@ -28,6 +28,8 @@
             <a href="/game" class="play-btn">Назад в игру</a>
             <a href="/logout" class="logout-btn">Выйти</a>
         </div>
+
+        <h2 style="margin-bottom:20px;">🐍 Скины змейки</h2>
 
         <div class="skins-grid">
             {% for skin_id, skin in skins.items() %}
@@ -58,6 +60,40 @@
             {% endfor %}
         </div>
 
+        <h2 style="margin:40px 0 20px;">✨ Эффекты следа</h2>
+
+        <div class="skins-grid">
+            {% for trail_id, trail in trails.items() %}
+            <div class="skin-card">
+
+                <div class="trail-preview">
+                    <div class="trail-dot" data-color1="{{ trail.color1 }}" data-color2="{{ trail.color2 }}"></div>
+                    <div class="trail-line" data-color1="{{ trail.color1 }}" data-color2="{{ trail.color2 }}"></div>
+                    <div class="trail-dot small" data-color1="{{ trail.color1 }}" data-color2="{{ trail.color2 }}"></div>
+                </div>
+
+                <h2>{{ trail.name }}</h2>
+
+                <p class="skin-price">
+                    {{ trail.description }}
+                </p>
+
+                <p class="skin-price">
+                    Цена: {{ trail.price }} 💰
+                </p>
+
+                {% if trail_id == selected_trail %}
+                    <button class="selected-btn">Выбран</button>
+                {% elif trail_id in owned_trails %}
+                    <a href="/select_trail/{{ trail_id }}" class="play-btn">Выбрать</a>
+                {% else %}
+                    <a href="/buy_trail/{{ trail_id }}" class="buy-btn">Купить</a>
+                {% endif %}
+
+            </div>
+            {% endfor %}
+        </div>
+
     </div>
 </div>
 
@@ -68,6 +104,16 @@ document.querySelectorAll(".preview-head").forEach(head => {
 
 document.querySelectorAll(".preview-body").forEach(body => {
     body.style.background = `linear-gradient(45deg, ${body.dataset.color1}, ${body.dataset.color2})`;
+});
+
+document.querySelectorAll(".trail-dot").forEach(dot => {
+    dot.style.background = `linear-gradient(45deg, ${dot.dataset.color1}, ${dot.dataset.color2})`;
+    dot.style.boxShadow = `0 0 18px ${dot.dataset.color1}`;
+});
+
+document.querySelectorAll(".trail-line").forEach(line => {
+    line.style.background = `linear-gradient(90deg, ${line.dataset.color1}, ${line.dataset.color2})`;
+    line.style.boxShadow = `0 0 18px ${line.dataset.color1}`;
 });
 </script>
 

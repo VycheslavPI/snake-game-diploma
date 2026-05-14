@@ -23,8 +23,8 @@
             <div class="instructions">
                 <h3>Инструкция</h3>
                 <p>ПК → W A S D / Стрелки<br>Телефон → свайпы и кнопки</p>
-                <p>Каждые 5 яблок повышают уровень и скорость змейки.</p>
                 <p>Разные яблоки дают разные эффекты.</p>
+                <p>Скины и следы можно покупать отдельно и комбинировать.</p>
                 <p>Цель: пройти до 10 уровня.</p>
             </div>
 
@@ -117,6 +117,10 @@ const skinHead = "{{ skin_data.head }}";
 const skinBody1 = "{{ skin_data.body1 }}";
 const skinBody2 = "{{ skin_data.body2 }}";
 
+const trailColor1 = "{{ trail_data.color1 }}";
+const trailColor2 = "{{ trail_data.color2 }}";
+const trailName = "{{ trail_data.name }}";
+
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const finalLevel = 10;
@@ -130,41 +134,11 @@ const maps = [
 ];
 
 const foodTypes = [
-    {
-        id: "normal",
-        name: "Обычная",
-        color: "#ff3355",
-        glow: "#ff3355",
-        chance: 55
-    },
-    {
-        id: "slow",
-        name: "Замедление",
-        color: "#38bdf8",
-        glow: "#38bdf8",
-        chance: 15
-    },
-    {
-        id: "gold",
-        name: "Золотая x3",
-        color: "#facc15",
-        glow: "#facc15",
-        chance: 12
-    },
-    {
-        id: "coin",
-        name: "Монетная",
-        color: "#22c55e",
-        glow: "#22c55e",
-        chance: 10
-    },
-    {
-        id: "ghost",
-        name: "Призрак",
-        color: "#a855f7",
-        glow: "#a855f7",
-        chance: 8
-    }
+    { id: "normal", name: "Обычная", color: "#ff3355", glow: "#ff3355", chance: 55 },
+    { id: "slow", name: "Замедление", color: "#38bdf8", glow: "#38bdf8", chance: 15 },
+    { id: "gold", name: "Золотая x3", color: "#facc15", glow: "#facc15", chance: 12 },
+    { id: "coin", name: "Монетная", color: "#22c55e", glow: "#22c55e", chance: 10 },
+    { id: "ghost", name: "Призрак", color: "#a855f7", glow: "#a855f7", chance: 8 }
 ];
 
 let snake = [{x: 10, y: 10}];
@@ -172,6 +146,7 @@ let food = {};
 let currentFoodType = foodTypes[0];
 let obstacles = [];
 let particles = [];
+let trailParticles = [];
 
 let dx = 1;
 let dy = 0;
@@ -203,6 +178,7 @@ document.getElementById("startBtn").addEventListener("click", startGame);
 function startGame() {
     snake = [{x: 10, y: 10}];
     particles = [];
+    trailParticles = [];
 
     dx = 1;
     dy = 0;
@@ -262,6 +238,7 @@ function drawGame() {
 
 function drawScene() {
     drawBackground();
+    drawTrail();
     drawObstacles();
     drawFood();
     drawSnake();
@@ -302,6 +279,15 @@ function drawBackground() {
 
 function moveSnake() {
     if (!gameStarted) return;
+
+    const oldHead = snake[0];
+
+    if (trailName !== "No Trail") {
+        createTrailParticle(
+            oldHead.x * gridSize + gridSize / 2,
+            oldHead.y * gridSize + gridSize / 2
+        );
+    }
 
     const head = {
         x: snake[0].x + dx,
@@ -358,8 +344,7 @@ function applyFoodEffect(type) {
     }
 
     if (type.id === "coin") {
-        score += foodValue;
-        score += 10;
+        score += foodValue + 10;
         activeEffectText.innerText = "+10 бонус";
     }
 
@@ -572,6 +557,55 @@ function drawObstacles() {
     });
 
     ctx.shadowBlur = 0;
+}
+
+function drawTrail() {
+    trailParticles.forEach((p, index) => {
+        ctx.save();
+
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 18;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life--;
+
+        if (p.life <= 0) {
+            trailParticles.splice(index, 1);
+        }
+    });
+}
+
+function createTrailParticle(x, y) {
+    let color = Math.random() > 0.5 ? trailColor1 : trailColor2;
+
+    if (trailName === "Rainbow Trail") {
+        const rainbow = ["#ff0055", "#ffaa00", "#00ff99", "#00ccff", "#aa00ff"];
+        color = rainbow[Math.floor(Math.random() * rainbow.length)];
+    }
+
+    trailParticles.push({
+        x: x + (Math.random() - 0.5) * 8,
+        y: y + (Math.random() - 0.5) * 8,
+        dx: (Math.random() - 0.5) * 1.2,
+        dy: (Math.random() - 0.5) * 1.2,
+        size: trailName === "Fire Trail" ? 4 : 3,
+        life: trailName === "Void Trail" ? 24 : 18,
+        maxLife: trailName === "Void Trail" ? 24 : 18,
+        color: color
+    });
+
+    if (trailParticles.length > 90) {
+        trailParticles.shift();
+    }
 }
 
 function drawSnake() {
