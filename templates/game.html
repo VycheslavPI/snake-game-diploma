@@ -24,9 +24,8 @@
                 <h3>Инструкция</h3>
                 <p>ПК → W A S D / Стрелки<br>Телефон → свайпы и кнопки</p>
                 <p>Каждые 5 яблок повышают уровень и скорость змейки.</p>
-                <p>С ростом уровня появляются заборчики. Столкновение с ними завершает игру.</p>
+                <p>Препятствия появляются только в безопасных местах и не возникают поверх змейки.</p>
                 <p>Очки начисляются по геометрической прогрессии: 1 → 2 → 4 → 8 → 16...</p>
-                <p>Каждые 2 уровня меняется карта.</p>
                 <p>Цель: пройти до 10 уровня.</p>
             </div>
 
@@ -117,36 +116,11 @@ const tileCount = canvas.width / gridSize;
 const finalLevel = 10;
 
 const maps = [
-    {
-        bg: "#04122b",
-        grid: "rgba(0,255,150,0.08)",
-        obstacle: "#00ccff",
-        name: "NEON GRID"
-    },
-    {
-        bg: "#05291d",
-        grid: "rgba(0,255,100,0.08)",
-        obstacle: "#00ff66",
-        name: "TOXIC ZONE"
-    },
-    {
-        bg: "#0b1f3a",
-        grid: "rgba(100,200,255,0.08)",
-        obstacle: "#38bdf8",
-        name: "ICE CORE"
-    },
-    {
-        bg: "#220a38",
-        grid: "rgba(200,100,255,0.08)",
-        obstacle: "#c026d3",
-        name: "VOID SECTOR"
-    },
-    {
-        bg: "#3b1204",
-        grid: "rgba(255,120,0,0.08)",
-        obstacle: "#ff6600",
-        name: "INFERNO"
-    }
+    { bg: "#04122b", grid: "rgba(0,255,150,0.08)", obstacle: "#00ccff", name: "NEON GRID" },
+    { bg: "#05291d", grid: "rgba(0,255,100,0.08)", obstacle: "#00ff66", name: "TOXIC ZONE" },
+    { bg: "#0b1f3a", grid: "rgba(100,200,255,0.08)", obstacle: "#38bdf8", name: "ICE CORE" },
+    { bg: "#220a38", grid: "rgba(200,100,255,0.08)", obstacle: "#c026d3", name: "VOID SECTOR" },
+    { bg: "#3b1204", grid: "rgba(255,120,0,0.08)", obstacle: "#ff6600", name: "INFERNO" }
 ];
 
 let snake = [{x: 10, y: 10}];
@@ -156,6 +130,8 @@ let particles = [];
 
 let dx = 1;
 let dy = 0;
+let nextDx = 1;
+let nextDy = 0;
 
 let score = 0;
 let bestScore = parseInt(bestScoreText.innerText) || 0;
@@ -180,12 +156,14 @@ function startGame() {
 
     dx = 1;
     dy = 0;
+    nextDx = 1;
+    nextDy = 0;
 
     score = 0;
     level = 1;
     eatenFood = 0;
     foodValue = 1;
-    speed = 150;
+    speed = 145;
     gameStarted = true;
     levelTextAnimation = 0;
 
@@ -196,7 +174,7 @@ function startGame() {
     gameOverText.style.display = "none";
     winText.style.display = "none";
 
-    obstacles = generateObstacles(level);
+    obstacles = generateSafeObstacles(level);
     generateFood();
 
     if (gameLoop) clearInterval(gameLoop);
@@ -210,6 +188,9 @@ function getCurrentMap() {
 }
 
 function drawGame() {
+    dx = nextDx;
+    dy = nextDy;
+
     moveSnake();
 
     if (checkCollision()) {
@@ -226,7 +207,7 @@ function drawScene() {
     drawFood();
     drawSnake();
     drawParticles();
-    drawLevelAnimation();
+    drawLevelHud();
 }
 
 function drawBackground() {
@@ -251,11 +232,11 @@ function drawBackground() {
 
     ctx.save();
     ctx.fillStyle = "rgba(255,255,255,0.12)";
-    ctx.font = "bold 18px Arial";
+    ctx.font = "bold 16px Arial";
     ctx.textAlign = "left";
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 12;
     ctx.shadowColor = currentMap.obstacle;
-    ctx.fillText(currentMap.name, 14, 28);
+    ctx.fillText(currentMap.name, 14, 26);
     ctx.restore();
 }
 
@@ -305,10 +286,10 @@ function updateLevel() {
         levelText.innerText = level;
 
         foodValue = Math.pow(2, level - 1);
-        speed = Math.max(55, speed - 12);
+        speed = Math.max(65, speed - 8);
 
-        obstacles = generateObstacles(level);
-        levelTextAnimation = 120;
+        obstacles = generateSafeObstacles(level);
+        levelTextAnimation = 45;
 
         createParticles(200, 200, getCurrentMap().obstacle);
 
@@ -321,7 +302,7 @@ function updateLevel() {
     }
 }
 
-function generateObstacles(currentLevel) {
+function getObstaclePattern(currentLevel) {
     let list = [];
 
     if (currentLevel >= 2) {
@@ -370,6 +351,34 @@ function generateObstacles(currentLevel) {
     return list;
 }
 
+function generateSafeObstacles(currentLevel) {
+    const pattern = getObstaclePattern(currentLevel);
+    const head = snake[0];
+
+    return pattern.filter(block => {
+        if (isSnakeCell(block.x, block.y)) return false;
+        if (food && block.x === food.x && block.y === food.y) return false;
+
+        const distanceToHead =
+            Math.abs(block.x - head.x) +
+            Math.abs(block.y - head.y);
+
+        if (distanceToHead <= 4) return false;
+
+        const nextCells = [
+            {x: head.x + dx, y: head.y + dy},
+            {x: head.x + dx * 2, y: head.y + dy * 2},
+            {x: head.x + dx * 3, y: head.y + dy * 3}
+        ];
+
+        for (let cell of nextCells) {
+            if (block.x === cell.x && block.y === cell.y) return false;
+        }
+
+        return true;
+    });
+}
+
 function drawObstacles() {
     const currentMap = getCurrentMap();
 
@@ -392,6 +401,9 @@ function drawObstacles() {
 
 function drawSnake() {
     snake.forEach((part, index) => {
+        const offset = index === 0 ? 1 : 2;
+        const size = index === 0 ? gridSize - 2 : gridSize - 4;
+
         if (index === 0) {
             ctx.fillStyle = skinHead;
             ctx.shadowColor = skinHead;
@@ -409,20 +421,20 @@ function drawSnake() {
 
             ctx.fillStyle = gradient;
             ctx.shadowColor = skinBody1;
-            ctx.shadowBlur = 16;
+            ctx.shadowBlur = 14;
         }
 
         drawRoundedRect(
-            part.x * gridSize + 2,
-            part.y * gridSize + 2,
-            gridSize - 4,
-            gridSize - 4,
+            part.x * gridSize + offset,
+            part.y * gridSize + offset,
+            size,
+            size,
             8
         );
 
         ctx.shadowBlur = 0;
 
-        ctx.strokeStyle = "rgba(255,255,255,0.75)";
+        ctx.strokeStyle = "rgba(255,255,255,0.6)";
         ctx.lineWidth = 1;
         ctx.strokeRect(
             part.x * gridSize + 3,
@@ -432,17 +444,38 @@ function drawSnake() {
         );
 
         if (index === 0) {
-            ctx.fillStyle = "#111";
-
-            ctx.beginPath();
-            ctx.arc(part.x * gridSize + 7, part.y * gridSize + 7, 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(part.x * gridSize + 13, part.y * gridSize + 7, 2, 0, Math.PI * 2);
-            ctx.fill();
+            drawEyes(part);
         }
     });
+}
+
+function drawEyes(part) {
+    ctx.fillStyle = "#111";
+
+    let eye1 = {x: 7, y: 7};
+    let eye2 = {x: 13, y: 7};
+
+    if (dx === 1) {
+        eye1 = {x: 13, y: 6};
+        eye2 = {x: 13, y: 14};
+    } else if (dx === -1) {
+        eye1 = {x: 7, y: 6};
+        eye2 = {x: 7, y: 14};
+    } else if (dy === 1) {
+        eye1 = {x: 7, y: 14};
+        eye2 = {x: 13, y: 14};
+    } else if (dy === -1) {
+        eye1 = {x: 7, y: 6};
+        eye2 = {x: 13, y: 6};
+    }
+
+    ctx.beginPath();
+    ctx.arc(part.x * gridSize + eye1.x, part.y * gridSize + eye1.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(part.x * gridSize + eye2.x, part.y * gridSize + eye2.y, 2, 0, Math.PI * 2);
+    ctx.fill();
 }
 
 function drawFood() {
@@ -464,7 +497,7 @@ function createParticles(x, y, color) {
             y: y,
             dx: (Math.random() - 0.5) * 6,
             dy: (Math.random() - 0.5) * 6,
-            life: 30,
+            life: 28,
             color: color
         });
     }
@@ -473,7 +506,7 @@ function createParticles(x, y, color) {
 function drawParticles() {
     particles.forEach((p, index) => {
         ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life / 30;
+        ctx.globalAlpha = p.life / 28;
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
@@ -491,36 +524,50 @@ function drawParticles() {
     });
 }
 
-function drawLevelAnimation() {
+function drawLevelHud() {
     if (levelTextAnimation <= 0) return;
 
     const currentMap = getCurrentMap();
 
     ctx.save();
 
-    ctx.globalAlpha = levelTextAnimation / 120;
+    ctx.globalAlpha = levelTextAnimation / 45;
+
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.strokeStyle = currentMap.obstacle;
+    ctx.lineWidth = 1;
+
+    drawRoundedStrokeRect(255, 12, 130, 42, 12);
+
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 42px Arial";
+    ctx.font = "bold 14px Arial";
     ctx.textAlign = "center";
-    ctx.shadowBlur = 25;
+    ctx.shadowBlur = 12;
     ctx.shadowColor = currentMap.obstacle;
 
-    ctx.fillText(
-        "LEVEL " + level,
-        canvas.width / 2,
-        canvas.height / 2
-    );
+    ctx.fillText("LEVEL " + level, 320, 30);
 
-    ctx.font = "bold 18px Arial";
-    ctx.fillText(
-        currentMap.name,
-        canvas.width / 2,
-        canvas.height / 2 + 34
-    );
+    ctx.font = "bold 10px Arial";
+    ctx.fillText(currentMap.name, 320, 46);
 
     ctx.restore();
 
     levelTextAnimation--;
+}
+
+function drawRoundedStrokeRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.fill();
+    ctx.stroke();
 }
 
 function generateFood() {
@@ -534,14 +581,17 @@ function generateFood() {
 
         valid = true;
 
-        for (let part of snake) {
-            if (part.x === food.x && part.y === food.y) valid = false;
-        }
-
-        for (let block of obstacles) {
-            if (block.x === food.x && block.y === food.y) valid = false;
-        }
+        if (isSnakeCell(food.x, food.y)) valid = false;
+        if (isObstacleCell(food.x, food.y)) valid = false;
     }
+}
+
+function isSnakeCell(x, y) {
+    return snake.some(part => part.x === x && part.y === y);
+}
+
+function isObstacleCell(x, y) {
+    return obstacles.some(block => block.x === x && block.y === y);
 }
 
 function checkCollision() {
@@ -555,9 +605,7 @@ function checkCollision() {
         if (snake[i].x === head.x && snake[i].y === head.y) return true;
     }
 
-    for (let block of obstacles) {
-        if (block.x === head.x && block.y === head.y) return true;
-    }
+    if (isObstacleCell(head.x, head.y)) return true;
 
     return false;
 }
@@ -612,42 +660,49 @@ function drawRoundedRect(x, y, width, height, radius) {
     ctx.fill();
 }
 
-document.addEventListener("keydown", (event) => {
-    const key = event.key.toLowerCase();
-
-    if ((key === "arrowup" || key === "w") && dy !== 1) setDirection("UP");
-    if ((key === "arrowdown" || key === "s") && dy !== -1) setDirection("DOWN");
-    if ((key === "arrowleft" || key === "a") && dx !== 1) setDirection("LEFT");
-    if ((key === "arrowright" || key === "d") && dx !== -1) setDirection("RIGHT");
-});
-
 function setDirection(direction) {
     if (direction === "UP" && dy !== 1) {
-        dx = 0; dy = -1;
+        nextDx = 0;
+        nextDy = -1;
     }
 
     if (direction === "DOWN" && dy !== -1) {
-        dx = 0; dy = 1;
+        nextDx = 0;
+        nextDy = 1;
     }
 
     if (direction === "LEFT" && dx !== 1) {
-        dx = -1; dy = 0;
+        nextDx = -1;
+        nextDy = 0;
     }
 
     if (direction === "RIGHT" && dx !== -1) {
-        dx = 1; dy = 0;
+        nextDx = 1;
+        nextDy = 0;
     }
 }
+
+document.addEventListener("keydown", (event) => {
+    const key = event.key.toLowerCase();
+
+    if (key === "arrowup" || key === "w") setDirection("UP");
+    if (key === "arrowdown" || key === "s") setDirection("DOWN");
+    if (key === "arrowleft" || key === "a") setDirection("LEFT");
+    if (key === "arrowright" || key === "d") setDirection("RIGHT");
+});
 
 let touchStartX = 0;
 let touchStartY = 0;
 
 canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
-});
+}, {passive: false});
 
 canvas.addEventListener("touchend", (e) => {
+    e.preventDefault();
+
     let touchEndX = e.changedTouches[0].screenX;
     let touchEndY = e.changedTouches[0].screenY;
 
@@ -661,7 +716,7 @@ canvas.addEventListener("touchend", (e) => {
     } else {
         dySwipe > 0 ? setDirection("DOWN") : setDirection("UP");
     }
-});
+}, {passive: false});
 
 function toggleFullscreen() {
     const container = document.getElementById("gameContainer");
