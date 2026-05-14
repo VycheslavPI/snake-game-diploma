@@ -502,3 +502,29 @@ input:focus{
     border-radius:12px;
     font-weight:bold;
 }
+.trail-preview{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin-bottom:20px;
+    height:45px;
+}
+
+.trail-dot{
+    width:26px;
+    height:26px;
+    border-radius:50%;
+}
+
+.trail-dot.small{
+    width:16px;
+    height:16px;
+    opacity:0.75;
+}
+
+.trail-line{
+    width:75px;
+    height:12px;
+    border-radius:20px;
+}
