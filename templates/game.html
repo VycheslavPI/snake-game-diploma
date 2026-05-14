@@ -25,7 +25,7 @@
                 <p>ПК → W A S D / Стрелки<br>Телефон → свайпы и кнопки</p>
                 <p>Разные яблоки дают разные эффекты.</p>
                 <p>Скины и следы можно покупать отдельно и комбинировать.</p>
-                <p>На 3 уровне появляется мини-босс с лазерами.</p>
+                <p>На 3 уровне появляется мини-босс с предупреждением лазеров.</p>
                 <p>Цель: пройти до 10 уровня.</p>
             </div>
 
@@ -148,11 +148,12 @@ const foodTypes = [
     { id: "ghost", name: "Призрак", color: "#a855f7", glow: "#a855f7", chance: 8 }
 ];
 
-let snake = [{x: 10, y: 10}];
-let previousSnake = [{x: 10, y: 10}];
+let snake = [];
+let previousSnake = [];
 
 let food = {};
 let currentFoodType = foodTypes[0];
+
 let obstacles = [];
 let particles = [];
 let trailParticles = [];
@@ -194,12 +195,14 @@ winText.style.display = "none";
 
 document.getElementById("startBtn").addEventListener("click", startGame);
 function startGame() {
-
     snake = [{x: 10, y: 10}];
     previousSnake = snake.map(part => ({...part}));
 
+    food = {};
+    obstacles = [];
     particles = [];
     trailParticles = [];
+    miniBossLasers = [];
 
     dx = 1;
     dy = 0;
@@ -221,11 +224,12 @@ function startGame() {
     miniBossMode = false;
     miniBossCompleted = false;
     miniBossTimer = 12;
-    miniBossLasers = [];
+    miniBossPulse = 0;
 
-    if (miniBossInterval) {
-        clearInterval(miniBossInterval);
-    }
+    if (miniBossInterval) clearInterval(miniBossInterval);
+    if (gameLoop) clearInterval(gameLoop);
+    if (effectTimerInterval) clearInterval(effectTimerInterval);
+    if (animationFrame) cancelAnimationFrame(animationFrame);
 
     gameStarted = true;
     lastMoveTime = performance.now();
@@ -234,20 +238,15 @@ function startGame() {
     levelText.innerText = level;
     foodValueText.innerText = foodValue;
     activeEffectText.innerText = "Нет";
+    foodTypeText.innerText = "Обычная";
 
     gameOverText.style.display = "none";
     winText.style.display = "none";
 
     obstacles = generateSafeObstacles(level);
-
     generateFood();
 
-    if (gameLoop) clearInterval(gameLoop);
-    if (effectTimerInterval) clearInterval(effectTimerInterval);
-    if (animationFrame) cancelAnimationFrame(animationFrame);
-
     gameLoop = setInterval(updateGameLogic, speed);
-
     effectTimerInterval = setInterval(updateEffectTimers, 1000);
 
     renderLoop();
@@ -258,6 +257,7 @@ function getCurrentMap() {
 }
 
 function updateGameLogic() {
+    if (!gameStarted) return;
 
     previousSnake = snake.map(part => ({...part}));
 
@@ -274,7 +274,6 @@ function updateGameLogic() {
 }
 
 function renderLoop() {
-
     drawScene();
 
     if (gameStarted) {
@@ -283,23 +282,20 @@ function renderLoop() {
 }
 
 function getSmoothProgress() {
-
     if (!gameStarted) return 1;
 
-    const rawProgress =
-        (performance.now() - lastMoveTime) / speed;
-
+    const rawProgress = (performance.now() - lastMoveTime) / speed;
     const progress = Math.min(rawProgress, 1);
 
     return progress * progress * (3 - 2 * progress);
 }
 
 function getInterpolatedSnake() {
+    if (!snake.length) return [];
 
     const progress = getSmoothProgress();
 
     return snake.map((part, index) => {
-
         const previous =
             previousSnake[index] ||
             previousSnake[previousSnake.length - 1] ||
@@ -313,38 +309,26 @@ function getInterpolatedSnake() {
 }
 
 function drawScene() {
-
     drawBackground();
-
     drawTrail();
-
     drawObstacles();
-
     drawFood();
-
     drawSnake();
-
     drawMiniBoss();
-
     drawParticles();
-
     drawLevelHud();
-
     drawGhostHud();
 }
 
 function drawBackground() {
-
     const currentMap = getCurrentMap();
 
     ctx.fillStyle = currentMap.bg;
-
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.strokeStyle = currentMap.grid;
 
-    for (let i = 0; i < canvas.width; i += gridSize) {
-
+    for (let i = 0; i <= canvas.width; i += gridSize) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
         ctx.lineTo(i, canvas.height);
@@ -357,27 +341,21 @@ function drawBackground() {
     }
 
     ctx.save();
-
     ctx.fillStyle = "rgba(255,255,255,0.12)";
     ctx.font = "bold 16px Arial";
     ctx.textAlign = "left";
-
     ctx.shadowBlur = 12;
     ctx.shadowColor = currentMap.obstacle;
-
     ctx.fillText(currentMap.name, 14, 26);
-
     ctx.restore();
 }
 
 function moveSnake() {
-
-    if (!gameStarted) return;
+    if (!gameStarted || !snake.length) return;
 
     const oldHead = snake[0];
 
     if (trailName !== "No Trail") {
-
         createTrailParticle(
             oldHead.x * gridSize + gridSize / 2,
             oldHead.y * gridSize + gridSize / 2
@@ -385,14 +363,13 @@ function moveSnake() {
     }
 
     const head = {
-        x: snake[0].x + dx,
-        y: snake[0].y + dy
+        x: oldHead.x + dx,
+        y: oldHead.y + dy
     };
 
     snake.unshift(head);
 
     if (head.x === food.x && head.y === food.y) {
-
         applyFoodEffect(currentFoodType);
 
         eatenFood++;
@@ -416,18 +393,15 @@ function moveSnake() {
         foodValueText.innerText = foodValue;
 
         generateFood();
-
     } else {
-
         snake.pop();
     }
 }
 
 function applyFoodEffect(type) {
-
     if (type.id === "normal") {
         score += foodValue;
-        activeEffectText.innerText = "Нет";
+        activeEffectText.innerText = ghostCharges > 0 ? "Призрак x" + ghostCharges : "Нет";
     }
 
     if (type.id === "slow") {
@@ -455,67 +429,44 @@ function applyFoodEffect(type) {
 }
 
 function updateEffectTimers() {
-
     if (!gameStarted) return;
 
     if (slowTimer > 0) {
-
         slowTimer--;
-
-        activeEffectText.innerText =
-            "Замедление " + slowTimer + "с";
+        activeEffectText.innerText = "Замедление " + slowTimer + "с";
 
         if (slowTimer <= 0) {
-
             applySpeed();
-
-            activeEffectText.innerText =
-                ghostCharges > 0
-                ? "Призрак x" + ghostCharges
-                : "Нет";
+            activeEffectText.innerText = ghostCharges > 0 ? "Призрак x" + ghostCharges : "Нет";
         }
     }
 }
 
 function applySpeed() {
-
     if (gameLoop) clearInterval(gameLoop);
 
-    if (slowTimer > 0) {
-        speed = baseSpeed + 55;
-    } else {
-        speed = baseSpeed;
-    }
-
+    speed = slowTimer > 0 ? baseSpeed + 55 : baseSpeed;
     lastMoveTime = performance.now();
 
     gameLoop = setInterval(updateGameLogic, speed);
 }
 
 function updateLevel() {
-
-    const newLevel =
-        Math.floor(eatenFood / 5) + 1;
+    const newLevel = Math.floor(eatenFood / 5) + 1;
 
     if (newLevel > level) {
-
         level = newLevel;
-
         levelText.innerText = level;
 
         foodValue = Math.pow(2, level - 1);
+        foodValueText.innerText = foodValue;
 
         baseSpeed = Math.max(65, baseSpeed - 8);
 
         obstacles = generateSafeObstacles(level);
-
         levelTextAnimation = 45;
 
-        createParticles(
-            200,
-            200,
-            getCurrentMap().obstacle
-        );
+        createParticles(200, 200, getCurrentMap().obstacle);
 
         if (level === 3 && !miniBossCompleted) {
             startMiniBoss();
@@ -528,27 +479,19 @@ function updateLevel() {
         winGame();
     }
 }
-
 function startMiniBoss() {
-
     miniBossMode = true;
-
     miniBossCompleted = true;
-
     miniBossTimer = 12;
-
     miniBossLasers = [];
 
     activeEffectText.innerText = "⚠ MINI BOSS ⚠";
 
     spawnMiniBossLasers();
 
-    if (miniBossInterval) {
-        clearInterval(miniBossInterval);
-    }
+    if (miniBossInterval) clearInterval(miniBossInterval);
 
     miniBossInterval = setInterval(() => {
-
         if (!miniBossMode || !gameStarted) {
             clearInterval(miniBossInterval);
             return;
@@ -557,27 +500,18 @@ function startMiniBoss() {
         miniBossTimer--;
 
         if (miniBossTimer <= 0) {
-
             miniBossMode = false;
-
             miniBossLasers = [];
-
-            activeEffectText.innerText =
-                ghostCharges > 0
-                ? "Призрак x" + ghostCharges
-                : "Нет";
-
+            activeEffectText.innerText = ghostCharges > 0 ? "Призрак x" + ghostCharges : "Нет";
             createParticles(200, 200, "#00ffcc");
-
             clearInterval(miniBossInterval);
-
             return;
         }
 
         spawnMiniBossLasers();
-
     }, 1000);
 }
+
 function spawnMiniBossLasers() {
     miniBossLasers = [];
 
@@ -586,7 +520,7 @@ function spawnMiniBossLasers() {
     if (pattern === "horizontal") {
         let row = Math.floor(Math.random() * tileCount);
 
-        while (Math.abs(row - snake[0].y) <= 1) {
+        while (snake.length && Math.abs(row - snake[0].y) <= 1) {
             row = Math.floor(Math.random() * tileCount);
         }
 
@@ -603,7 +537,7 @@ function spawnMiniBossLasers() {
     if (pattern === "vertical") {
         let col = Math.floor(Math.random() * tileCount);
 
-        while (Math.abs(col - snake[0].x) <= 1) {
+        while (snake.length && Math.abs(col - snake[0].x) <= 1) {
             col = Math.floor(Math.random() * tileCount);
         }
 
@@ -626,7 +560,6 @@ function spawnMiniBossLasers() {
 }
 
 function drawMiniBoss() {
-
     if (!miniBossMode) return;
 
     miniBossPulse += 0.08;
@@ -638,7 +571,6 @@ function drawMiniBoss() {
 
     ctx.shadowColor = "#ff0055";
     ctx.shadowBlur = 30;
-
     ctx.fillStyle = "#ff0055";
 
     ctx.beginPath();
@@ -654,11 +586,7 @@ function drawMiniBoss() {
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 15px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(
-        "MINI BOSS " + miniBossTimer,
-        canvas.width / 2,
-        85
-    );
+    ctx.fillText("MINI BOSS " + miniBossTimer, canvas.width / 2, 85);
 
     ctx.restore();
 
@@ -695,7 +623,6 @@ function drawMiniBossLasers() {
 }
 
 function getObstaclePattern(currentLevel) {
-
     let list = [];
 
     if (currentLevel >= 2) {
@@ -745,15 +672,11 @@ function getObstaclePattern(currentLevel) {
 }
 
 function generateSafeObstacles(currentLevel) {
-
     const pattern = getObstaclePattern(currentLevel);
-
     const head = snake[0];
 
     return pattern.filter(block => {
-
         if (isSnakeCell(block.x, block.y)) return false;
-
         if (food && block.x === food.x && block.y === food.y) return false;
 
         const distanceToHead =
@@ -777,16 +700,11 @@ function generateSafeObstacles(currentLevel) {
 }
 
 function chooseFoodType() {
-
-    let totalChance =
-        foodTypes.reduce((sum, type) => sum + type.chance, 0);
-
+    let totalChance = foodTypes.reduce((sum, type) => sum + type.chance, 0);
     let random = Math.random() * totalChance;
 
     for (let type of foodTypes) {
-
         if (random < type.chance) return type;
-
         random -= type.chance;
     }
 
@@ -794,14 +712,14 @@ function chooseFoodType() {
 }
 
 function generateFood() {
-
     let valid = false;
+    let attempts = 0;
 
     currentFoodType = chooseFoodType();
-
     foodTypeText.innerText = currentFoodType.name;
 
-    while (!valid) {
+    while (!valid && attempts < 500) {
+        attempts++;
 
         food = {
             x: Math.floor(Math.random() * tileCount),
@@ -811,19 +729,31 @@ function generateFood() {
         valid = true;
 
         if (isSnakeCell(food.x, food.y)) valid = false;
-
         if (isObstacleCell(food.x, food.y)) valid = false;
+
+        if (miniBossMode) {
+            for (let laser of miniBossLasers) {
+                if (laser.x === food.x && laser.y === food.y) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!valid) {
+        food = {x: 1, y: 1};
     }
 }
 
 function drawFood() {
+    if (food.x === undefined || food.y === undefined) return;
 
     ctx.fillStyle = currentFoodType.color;
     ctx.shadowColor = currentFoodType.glow;
     ctx.shadowBlur = 20;
 
     ctx.beginPath();
-
     ctx.arc(
         food.x * gridSize + 10,
         food.y * gridSize + 10,
@@ -831,7 +761,6 @@ function drawFood() {
         0,
         Math.PI * 2
     );
-
     ctx.fill();
 
     ctx.shadowBlur = 0;
@@ -859,11 +788,9 @@ function drawFood() {
 }
 
 function drawObstacles() {
-
     const currentMap = getCurrentMap();
 
     obstacles.forEach(block => {
-
         const x = block.x * gridSize + 2;
         const y = block.y * gridSize + 2;
 
@@ -901,22 +828,7 @@ function drawObstacles() {
 
         ctx.shadowBlur = 18;
 
-        if (currentMap.wallStyle === "ice") {
-
-            drawRoundedRect(
-                x,
-                y,
-                gridSize - 4,
-                gridSize - 4,
-                2
-            );
-
-            ctx.strokeStyle = "rgba(255,255,255,0.7)";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, gridSize - 4, gridSize - 4);
-
-        } else if (currentMap.wallStyle === "fire") {
-
+        if (currentMap.wallStyle === "fire") {
             ctx.beginPath();
             ctx.moveTo(x + 8, y);
             ctx.lineTo(x + 16, y + 8);
@@ -924,50 +836,27 @@ function drawObstacles() {
             ctx.lineTo(x, y + 8);
             ctx.closePath();
             ctx.fill();
-
         } else if (currentMap.wallStyle === "void") {
-
             ctx.beginPath();
             ctx.arc(x + 8, y + 8, 8, 0, Math.PI * 2);
             ctx.fill();
-
         } else if (currentMap.wallStyle === "final") {
-
             ctx.fillRect(x, y, gridSize - 4, gridSize - 4);
-
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 1;
             ctx.strokeRect(x, y, gridSize - 4, gridSize - 4);
-
         } else {
-
-            drawRoundedRect(
-                x,
-                y,
-                gridSize - 4,
-                gridSize - 4,
-                5
-            );
+            drawRoundedRect(x, y, gridSize - 4, gridSize - 4, currentMap.wallStyle === "ice" ? 2 : 5);
         }
 
         ctx.restore();
     });
 }
-
 function createTrailParticle(x, y) {
-
     let color = Math.random() > 0.5 ? trailColor1 : trailColor2;
 
     if (trailName === "Rainbow Trail") {
-
-        const rainbow = [
-            "#ff0055",
-            "#ffaa00",
-            "#00ff99",
-            "#00ccff",
-            "#aa00ff"
-        ];
-
+        const rainbow = ["#ff0055", "#ffaa00", "#00ff99", "#00ccff", "#aa00ff"];
         color = rainbow[Math.floor(Math.random() * rainbow.length)];
     }
 
@@ -978,31 +867,24 @@ function createTrailParticle(x, y) {
     if (trailName === "Rainbow Trail") particleCount = 4;
 
     for (let i = 0; i < particleCount; i++) {
-
         trailParticles.push({
-
             x: x + (Math.random() - 0.5) * 12,
             y: y + (Math.random() - 0.5) * 12,
-
             dx: (Math.random() - 0.5) * 1.8,
             dy: (Math.random() - 0.5) * 1.8,
-
             size:
                 trailName === "Fire Trail" ? 7 :
                 trailName === "Void Trail" ? 8 :
                 trailName === "Rainbow Trail" ? 6 :
                 5,
-
             life:
                 trailName === "Void Trail" ? 42 :
                 trailName === "Fire Trail" ? 34 :
                 28,
-
             maxLife:
                 trailName === "Void Trail" ? 42 :
                 trailName === "Fire Trail" ? 34 :
                 28,
-
             color: color
         });
     }
@@ -1013,15 +895,12 @@ function createTrailParticle(x, y) {
 }
 
 function drawTrail() {
-
     trailParticles.forEach((p, index) => {
-
         ctx.save();
 
         const alpha = p.life / p.maxLife;
 
         ctx.globalAlpha = alpha;
-
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
 
@@ -1031,48 +910,22 @@ function drawTrail() {
             22;
 
         ctx.beginPath();
-
-        ctx.arc(
-            p.x,
-            p.y,
-            p.size,
-            0,
-            Math.PI * 2
-        );
-
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
 
         if (trailName === "Fire Trail") {
-
             ctx.globalAlpha = alpha * 0.45;
 
             ctx.beginPath();
-
-            ctx.arc(
-                p.x,
-                p.y,
-                p.size * 2,
-                0,
-                Math.PI * 2
-            );
-
+            ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
         if (trailName === "Void Trail") {
-
             ctx.globalAlpha = alpha * 0.25;
 
             ctx.beginPath();
-
-            ctx.arc(
-                p.x,
-                p.y,
-                p.size * 2.5,
-                0,
-                Math.PI * 2
-            );
-
+            ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -1080,16 +933,10 @@ function drawTrail() {
 
         p.x += p.dx;
         p.y += p.dy;
-
         p.life--;
 
-        if (trailName === "Void Trail") {
-            p.size *= 0.99;
-        }
-
-        if (trailName === "Fire Trail") {
-            p.size *= 0.985;
-        }
+        if (trailName === "Void Trail") p.size *= 0.99;
+        if (trailName === "Fire Trail") p.size *= 0.985;
 
         if (p.life <= 0) {
             trailParticles.splice(index, 1);
@@ -1098,32 +945,26 @@ function drawTrail() {
 }
 
 function drawSnake() {
-
     const smoothSnake = getInterpolatedSnake();
 
     if (smoothSnake.length > 1) {
-
         ctx.save();
 
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-
         ctx.strokeStyle =
             ghostCharges > 0
-            ? "rgba(168,85,247,0.35)"
-            : "rgba(255,255,255,0.12)";
-
+                ? "rgba(168,85,247,0.35)"
+                : "rgba(255,255,255,0.12)";
         ctx.lineWidth = 16;
 
         ctx.beginPath();
-
         ctx.moveTo(
             smoothSnake[0].x * gridSize + gridSize / 2,
             smoothSnake[0].y * gridSize + gridSize / 2
         );
 
         for (let i = 1; i < smoothSnake.length; i++) {
-
             ctx.lineTo(
                 smoothSnake[i].x * gridSize + gridSize / 2,
                 smoothSnake[i].y * gridSize + gridSize / 2
@@ -1131,25 +972,19 @@ function drawSnake() {
         }
 
         ctx.stroke();
-
         ctx.restore();
     }
 
     smoothSnake.forEach((part, index) => {
-
         const offset = index === 0 ? 1 : 2;
-
         const size = index === 0 ? gridSize - 2 : gridSize - 4;
 
         if (index === 0) {
-
             ctx.fillStyle = skinHead;
             ctx.shadowColor = skinHead;
             ctx.shadowBlur = ghostCharges > 0 ? 30 : 22;
             ctx.globalAlpha = ghostCharges > 0 ? 0.75 : 1;
-
         } else {
-
             const gradient = ctx.createLinearGradient(
                 part.x * gridSize,
                 part.y * gridSize,
@@ -1179,9 +1014,8 @@ function drawSnake() {
 
         ctx.strokeStyle =
             ghostCharges > 0
-            ? "rgba(168,85,247,0.9)"
-            : "rgba(255,255,255,0.6)";
-
+                ? "rgba(168,85,247,0.9)"
+                : "rgba(255,255,255,0.6)";
         ctx.lineWidth = 1;
 
         ctx.strokeRect(
@@ -1198,7 +1032,6 @@ function drawSnake() {
 }
 
 function drawEyes(part) {
-
     ctx.fillStyle = "#111";
 
     let eye1 = {x: 7, y: 7};
@@ -1228,9 +1061,7 @@ function drawEyes(part) {
 }
 
 function createParticles(x, y, color) {
-
     for (let i = 0; i < 18; i++) {
-
         particles.push({
             x: x,
             y: y,
@@ -1243,30 +1074,18 @@ function createParticles(x, y, color) {
 }
 
 function drawParticles() {
-
     particles.forEach((p, index) => {
-
         ctx.fillStyle = p.color;
-
         ctx.globalAlpha = p.life / 28;
 
         ctx.beginPath();
-
-        ctx.arc(
-            p.x,
-            p.y,
-            3,
-            0,
-            Math.PI * 2
-        );
-
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.globalAlpha = 1;
 
         p.x += p.dx;
         p.y += p.dy;
-
         p.life--;
 
         if (p.life <= 0) {
@@ -1276,7 +1095,6 @@ function drawParticles() {
 }
 
 function drawLevelHud() {
-
     if (levelTextAnimation <= 0) return;
 
     const currentMap = getCurrentMap();
@@ -1289,18 +1107,11 @@ function drawLevelHud() {
     ctx.strokeStyle = currentMap.obstacle;
     ctx.lineWidth = 1;
 
-    drawRoundedStrokeRect(
-        255,
-        12,
-        130,
-        42,
-        12
-    );
+    drawRoundedStrokeRect(255, 12, 130, 42, 12);
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 14px Arial";
     ctx.textAlign = "center";
-
     ctx.shadowBlur = 12;
     ctx.shadowColor = currentMap.obstacle;
 
@@ -1315,7 +1126,6 @@ function drawLevelHud() {
 }
 
 function drawGhostHud() {
-
     if (ghostCharges <= 0) return;
 
     ctx.save();
@@ -1329,7 +1139,6 @@ function drawGhostHud() {
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 13px Arial";
     ctx.textAlign = "center";
-
     ctx.shadowBlur = 12;
     ctx.shadowColor = "#a855f7";
 
@@ -1339,72 +1148,44 @@ function drawGhostHud() {
 }
 
 function drawRoundedStrokeRect(x, y, width, height, radius) {
-
     ctx.beginPath();
-
     ctx.moveTo(x + radius, y);
-
     ctx.lineTo(x + width - radius, y);
-
     ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-
     ctx.lineTo(x + width, y + height - radius);
-
     ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-
     ctx.lineTo(x + radius, y + height);
-
     ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-
     ctx.lineTo(x, y + radius);
-
     ctx.quadraticCurveTo(x, y, x + radius, y);
-
     ctx.fill();
-
     ctx.stroke();
 }
 
 function drawRoundedRect(x, y, width, height, radius) {
-
     ctx.beginPath();
-
     ctx.moveTo(x + radius, y);
-
     ctx.lineTo(x + width - radius, y);
-
     ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-
     ctx.lineTo(x + width, y + height - radius);
-
     ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-
     ctx.lineTo(x + radius, y + height);
-
     ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-
     ctx.lineTo(x, y + radius);
-
     ctx.quadraticCurveTo(x, y, x + radius, y);
-
     ctx.fill();
 }
 
 function isSnakeCell(x, y) {
-
-    return snake.some(
-        part => part.x === x && part.y === y
-    );
+    return snake.some(part => part.x === x && part.y === y);
 }
 
 function isObstacleCell(x, y) {
-
-    return obstacles.some(
-        block => block.x === x && block.y === y
-    );
+    return obstacles.some(block => block.x === x && block.y === y);
 }
 
 function checkCollision() {
+    if (!snake.length) return false;
 
     const head = snake[0];
 
@@ -1418,25 +1199,19 @@ function checkCollision() {
     }
 
     for (let i = 1; i < snake.length; i++) {
-
-        if (
-            snake[i].x === head.x &&
-            snake[i].y === head.y
-        ) {
+        if (snake[i].x === head.x && snake[i].y === head.y) {
             return true;
         }
     }
 
     if (isObstacleCell(head.x, head.y)) {
-
         if (ghostCharges > 0) {
-
             ghostCharges--;
 
             activeEffectText.innerText =
                 ghostCharges > 0
-                ? "Призрак x" + ghostCharges
-                : "Нет";
+                    ? "Призрак x" + ghostCharges
+                    : "Нет";
 
             createParticles(
                 head.x * gridSize + 10,
@@ -1451,53 +1226,56 @@ function checkCollision() {
     }
 
     if (miniBossMode) {
-    for (let laser of miniBossLasers) {
-        if (
-            laser.active &&
-            head.x === laser.x &&
-            head.y === laser.y
-        ) {
-            if (ghostCharges > 0) {
-                ghostCharges--;
+        for (let laser of miniBossLasers) {
+            if (
+                laser.active &&
+                head.x === laser.x &&
+                head.y === laser.y
+            ) {
+                if (ghostCharges > 0) {
+                    ghostCharges--;
 
-                activeEffectText.innerText =
-                    ghostCharges > 0
-                    ? "Призрак x" + ghostCharges
-                    : "Нет";
+                    activeEffectText.innerText =
+                        ghostCharges > 0
+                            ? "Призрак x" + ghostCharges
+                            : "Нет";
 
-                createParticles(
-                    head.x * gridSize + 10,
-                    head.y * gridSize + 10,
-                    "#a855f7"
-                );
+                    createParticles(
+                        head.x * gridSize + 10,
+                        head.y * gridSize + 10,
+                        "#a855f7"
+                    );
 
-                return false;
+                    return false;
+                }
+
+                return true;
             }
-
-            return true;
         }
     }
+
+    return false;
 }
 
 function endGame() {
+    if (!gameStarted) return;
 
     clearInterval(gameLoop);
-
     if (effectTimerInterval) clearInterval(effectTimerInterval);
-
     if (miniBossInterval) clearInterval(miniBossInterval);
-
     if (animationFrame) cancelAnimationFrame(animationFrame);
 
     gameStarted = false;
 
     playSound(deathSound);
 
-    createParticles(
-        snake[0].x * gridSize + 10,
-        snake[0].y * gridSize + 10,
-        "#ff3355"
-    );
+    if (snake.length) {
+        createParticles(
+            snake[0].x * gridSize + 10,
+            snake[0].y * gridSize + 10,
+            "#ff3355"
+        );
+    }
 
     gameOverText.style.display = "block";
 
@@ -1505,13 +1283,11 @@ function endGame() {
 }
 
 function winGame() {
+    if (!gameStarted) return;
 
     clearInterval(gameLoop);
-
     if (effectTimerInterval) clearInterval(effectTimerInterval);
-
     if (miniBossInterval) clearInterval(miniBossInterval);
-
     if (animationFrame) cancelAnimationFrame(animationFrame);
 
     gameStarted = false;
@@ -1524,7 +1300,6 @@ function winGame() {
 }
 
 function saveScore(finalScore) {
-
     fetch('/save_score', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -1536,14 +1311,11 @@ function saveScore(finalScore) {
 }
 
 function playSound(sound) {
-
     sound.currentTime = 0;
-
     sound.play().catch(() => {});
 }
 
 function setDirection(direction) {
-
     if (direction === "UP" && dy !== 1) {
         nextDx = 0;
         nextDy = -1;
@@ -1566,15 +1338,11 @@ function setDirection(direction) {
 }
 
 document.addEventListener("keydown", (event) => {
-
     const key = event.key.toLowerCase();
 
     if (key === "arrowup" || key === "w") setDirection("UP");
-
     if (key === "arrowdown" || key === "s") setDirection("DOWN");
-
     if (key === "arrowleft" || key === "a") setDirection("LEFT");
-
     if (key === "arrowright" || key === "d") setDirection("RIGHT");
 });
 
@@ -1582,54 +1350,32 @@ let touchStartX = 0;
 let touchStartY = 0;
 
 canvas.addEventListener("touchstart", (e) => {
-
     e.preventDefault();
 
     touchStartX = e.changedTouches[0].screenX;
-
     touchStartY = e.changedTouches[0].screenY;
-
 }, {passive: false});
 
 canvas.addEventListener("touchend", (e) => {
-
     e.preventDefault();
 
     let touchEndX = e.changedTouches[0].screenX;
-
     let touchEndY = e.changedTouches[0].screenY;
 
     let dxSwipe = touchEndX - touchStartX;
-
     let dySwipe = touchEndY - touchStartY;
 
-    if (
-        Math.abs(dxSwipe) < 25 &&
-        Math.abs(dySwipe) < 25
-    ) {
-        return;
-    }
+    if (Math.abs(dxSwipe) < 25 && Math.abs(dySwipe) < 25) return;
 
     if (Math.abs(dxSwipe) > Math.abs(dySwipe)) {
-
-        dxSwipe > 0
-            ? setDirection("RIGHT")
-            : setDirection("LEFT");
-
+        dxSwipe > 0 ? setDirection("RIGHT") : setDirection("LEFT");
     } else {
-
-        dySwipe > 0
-            ? setDirection("DOWN")
-            : setDirection("UP");
+        dySwipe > 0 ? setDirection("DOWN") : setDirection("UP");
     }
-
 }, {passive: false});
 
-}
-
 function toggleFullscreen() {
-    const container =
-        document.getElementById("gameContainer");
+    const container = document.getElementById("gameContainer");
 
     if (!document.fullscreenElement) {
         container.requestFullscreen();
@@ -1637,8 +1383,6 @@ function toggleFullscreen() {
         document.exitFullscreen();
     }
 }
-
-generateFood();
 
 drawScene();
 </script>
