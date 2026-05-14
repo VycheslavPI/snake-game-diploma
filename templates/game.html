@@ -579,31 +579,50 @@ function startMiniBoss() {
     }, 1000);
 }
 function spawnMiniBossLasers() {
-
     miniBossLasers = [];
 
-    const pattern =
-        Math.random() > 0.5
-        ? "horizontal"
-        : "vertical";
+    const pattern = Math.random() > 0.5 ? "horizontal" : "vertical";
 
     if (pattern === "horizontal") {
+        let row = Math.floor(Math.random() * tileCount);
 
-        const row = Math.floor(Math.random() * tileCount);
+        while (Math.abs(row - snake[0].y) <= 1) {
+            row = Math.floor(Math.random() * tileCount);
+        }
 
         for (let x = 0; x < tileCount; x++) {
-            miniBossLasers.push({x, y: row});
+            miniBossLasers.push({
+                x: x,
+                y: row,
+                warning: true,
+                active: false
+            });
         }
     }
 
     if (pattern === "vertical") {
+        let col = Math.floor(Math.random() * tileCount);
 
-        const col = Math.floor(Math.random() * tileCount);
+        while (Math.abs(col - snake[0].x) <= 1) {
+            col = Math.floor(Math.random() * tileCount);
+        }
 
         for (let y = 0; y < tileCount; y++) {
-            miniBossLasers.push({x: col, y});
+            miniBossLasers.push({
+                x: col,
+                y: y,
+                warning: true,
+                active: false
+            });
         }
     }
+
+    setTimeout(() => {
+        miniBossLasers.forEach(laser => {
+            laser.warning = false;
+            laser.active = true;
+        });
+    }, 650);
 }
 
 function drawMiniBoss() {
@@ -647,17 +666,22 @@ function drawMiniBoss() {
 }
 
 function drawMiniBossLasers() {
-
     miniBossLasers.forEach(laser => {
-
         ctx.save();
 
-        ctx.fillStyle = "#ff0033";
-        ctx.shadowColor = "#ff0033";
-        ctx.shadowBlur = 20;
+        if (laser.warning) {
+            ctx.fillStyle = "rgba(255,255,255,0.22)";
+            ctx.shadowColor = "#ffffff";
+            ctx.shadowBlur = 10;
+        } else {
+            ctx.fillStyle = "#ff0033";
+            ctx.shadowColor = "#ff0033";
+            ctx.shadowBlur = 22;
+        }
 
-        ctx.globalAlpha =
-            0.55 + Math.sin(miniBossPulse * 4) * 0.25;
+        ctx.globalAlpha = laser.warning
+            ? 0.35 + Math.sin(miniBossPulse * 10) * 0.2
+            : 0.7 + Math.sin(miniBossPulse * 5) * 0.25;
 
         ctx.fillRect(
             laser.x * gridSize,
@@ -1427,38 +1451,32 @@ function checkCollision() {
     }
 
     if (miniBossMode) {
+    for (let laser of miniBossLasers) {
+        if (
+            laser.active &&
+            head.x === laser.x &&
+            head.y === laser.y
+        ) {
+            if (ghostCharges > 0) {
+                ghostCharges--;
 
-        for (let laser of miniBossLasers) {
+                activeEffectText.innerText =
+                    ghostCharges > 0
+                    ? "Призрак x" + ghostCharges
+                    : "Нет";
 
-            if (
-                head.x === laser.x &&
-                head.y === laser.y
-            ) {
+                createParticles(
+                    head.x * gridSize + 10,
+                    head.y * gridSize + 10,
+                    "#a855f7"
+                );
 
-                if (ghostCharges > 0) {
-
-                    ghostCharges--;
-
-                    activeEffectText.innerText =
-                        ghostCharges > 0
-                        ? "Призрак x" + ghostCharges
-                        : "Нет";
-
-                    createParticles(
-                        head.x * gridSize + 10,
-                        head.y * gridSize + 10,
-                        "#a855f7"
-                    );
-
-                    return false;
-                }
-
-                return true;
+                return false;
             }
+
+            return true;
         }
     }
-
-    return false;
 }
 
 function endGame() {
