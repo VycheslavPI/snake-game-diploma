@@ -771,27 +771,146 @@ function drawTrail() {
 }
 
 function createTrailParticle(x, y) {
+
     let color = Math.random() > 0.5 ? trailColor1 : trailColor2;
 
     if (trailName === "Rainbow Trail") {
-        const rainbow = ["#ff0055", "#ffaa00", "#00ff99", "#00ccff", "#aa00ff"];
+        const rainbow = [
+            "#ff0055",
+            "#ffaa00",
+            "#00ff99",
+            "#00ccff",
+            "#aa00ff"
+        ];
+
         color = rainbow[Math.floor(Math.random() * rainbow.length)];
     }
 
-    trailParticles.push({
-        x: x + (Math.random() - 0.5) * 8,
-        y: y + (Math.random() - 0.5) * 8,
-        dx: (Math.random() - 0.5) * 1.2,
-        dy: (Math.random() - 0.5) * 1.2,
-        size: trailName === "Fire Trail" ? 4 : 3,
-        life: trailName === "Void Trail" ? 24 : 18,
-        maxLife: trailName === "Void Trail" ? 24 : 18,
-        color: color
-    });
+    let particleCount = 2;
 
-    if (trailParticles.length > 90) {
-        trailParticles.shift();
+    if (trailName === "Fire Trail") particleCount = 4;
+    if (trailName === "Void Trail") particleCount = 5;
+    if (trailName === "Rainbow Trail") particleCount = 4;
+
+    for (let i = 0; i < particleCount; i++) {
+
+        trailParticles.push({
+
+            x: x + (Math.random() - 0.5) * 12,
+            y: y + (Math.random() - 0.5) * 12,
+
+            dx: (Math.random() - 0.5) * 1.8,
+            dy: (Math.random() - 0.5) * 1.8,
+
+            size:
+                trailName === "Fire Trail" ? 7 :
+                trailName === "Void Trail" ? 8 :
+                trailName === "Rainbow Trail" ? 6 :
+                5,
+
+            life:
+                trailName === "Void Trail" ? 42 :
+                trailName === "Fire Trail" ? 34 :
+                28,
+
+            maxLife:
+                trailName === "Void Trail" ? 42 :
+                trailName === "Fire Trail" ? 34 :
+                28,
+
+            color: color
+        });
     }
+
+    if (trailParticles.length > 220) {
+        trailParticles.splice(0, trailParticles.length - 220);
+    }
+}
+
+function drawTrail() {
+
+    trailParticles.forEach((p, index) => {
+
+        ctx.save();
+
+        const alpha = p.life / p.maxLife;
+
+        ctx.globalAlpha = alpha;
+
+        ctx.fillStyle = p.color;
+
+        ctx.shadowColor = p.color;
+
+        ctx.shadowBlur =
+            trailName === "Void Trail" ? 35 :
+            trailName === "Fire Trail" ? 28 :
+            22;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            p.x,
+            p.y,
+            p.size,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+        if (trailName === "Fire Trail") {
+
+            ctx.globalAlpha = alpha * 0.45;
+
+            ctx.beginPath();
+
+            ctx.arc(
+                p.x,
+                p.y,
+                p.size * 2,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.fill();
+        }
+
+        if (trailName === "Void Trail") {
+
+            ctx.globalAlpha = alpha * 0.25;
+
+            ctx.beginPath();
+
+            ctx.arc(
+                p.x,
+                p.y,
+                p.size * 2.5,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        p.life--;
+
+        if (trailName === "Void Trail") {
+            p.size *= 0.99;
+        }
+
+        if (trailName === "Fire Trail") {
+            p.size *= 0.985;
+        }
+
+        if (p.life <= 0) {
+            trailParticles.splice(index, 1);
+        }
+    });
 }
 
 function drawSnake() {
