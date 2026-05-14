@@ -142,6 +142,8 @@ const foodTypes = [
 ];
 
 let snake = [{x: 10, y: 10}];
+let previousSnake = [{x: 10, y: 10}];
+
 let food = {};
 let currentFoodType = foodTypes[0];
 let obstacles = [];
@@ -162,10 +164,13 @@ let eatenFood = 0;
 
 let baseSpeed = 145;
 let speed = baseSpeed;
-let gameLoop = null;
-let gameStarted = false;
-let levelTextAnimation = 0;
 
+let gameLoop = null;
+let animationFrame = null;
+let gameStarted = false;
+let lastMoveTime = performance.now();
+
+let levelTextAnimation = 0;
 let slowTimer = 0;
 let ghostCharges = 0;
 let effectTimerInterval = null;
@@ -177,6 +182,8 @@ document.getElementById("startBtn").addEventListener("click", startGame);
 
 function startGame() {
     snake = [{x: 10, y: 10}];
+    previousSnake = snake.map(part => ({...part}));
+
     particles = [];
     trailParticles = [];
 
@@ -197,6 +204,7 @@ function startGame() {
     ghostCharges = 0;
     levelTextAnimation = 0;
     gameStarted = true;
+    lastMoveTime = performance.now();
 
     scoreText.innerText = score;
     levelText.innerText = level;
@@ -211,29 +219,61 @@ function startGame() {
 
     if (gameLoop) clearInterval(gameLoop);
     if (effectTimerInterval) clearInterval(effectTimerInterval);
+    if (animationFrame) cancelAnimationFrame(animationFrame);
 
-    gameLoop = setInterval(drawGame, speed);
+    gameLoop = setInterval(updateGameLogic, speed);
     effectTimerInterval = setInterval(updateEffectTimers, 1000);
 
-    drawScene();
+    renderLoop();
 }
 
 function getCurrentMap() {
     return maps[Math.min(Math.floor((level - 1) / 2), maps.length - 1)];
 }
 
-function drawGame() {
+function updateGameLogic() {
+    previousSnake = snake.map(part => ({...part}));
+
     dx = nextDx;
     dy = nextDy;
 
     moveSnake();
 
+    lastMoveTime = performance.now();
+
     if (checkCollision()) {
         endGame();
-        return;
     }
+}
 
+function renderLoop() {
     drawScene();
+
+    if (gameStarted) {
+        animationFrame = requestAnimationFrame(renderLoop);
+    }
+}
+
+function getSmoothProgress() {
+    if (!gameStarted) return 1;
+
+    const rawProgress = (performance.now() - lastMoveTime) / speed;
+    const progress = Math.min(rawProgress, 1);
+
+    return progress * progress * (3 - 2 * progress);
+}
+
+function getInterpolatedSnake() {
+    const progress = getSmoothProgress();
+
+    return snake.map((part, index) => {
+        const previous = previousSnake[index] || previousSnake[previousSnake.length - 1] || part;
+
+        return {
+            x: previous.x + (part.x - previous.x) * progress,
+            y: previous.y + (part.y - previous.y) * progress
+        };
+    });
 }
 
 function drawScene() {
@@ -378,7 +418,8 @@ function applySpeed() {
         speed = baseSpeed;
     }
 
-    gameLoop = setInterval(drawGame, speed);
+    lastMoveTime = performance.now();
+    gameLoop = setInterval(updateGameLogic, speed);
 }
 
 function updateLevel() {
@@ -609,7 +650,33 @@ function createTrailParticle(x, y) {
 }
 
 function drawSnake() {
-    snake.forEach((part, index) => {
+    const smoothSnake = getInterpolatedSnake();
+
+    if (smoothSnake.length > 1) {
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = ghostCharges > 0 ? "rgba(168,85,247,0.35)" : "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 16;
+
+        ctx.beginPath();
+        ctx.moveTo(
+            smoothSnake[0].x * gridSize + gridSize / 2,
+            smoothSnake[0].y * gridSize + gridSize / 2
+        );
+
+        for (let i = 1; i < smoothSnake.length; i++) {
+            ctx.lineTo(
+                smoothSnake[i].x * gridSize + gridSize / 2,
+                smoothSnake[i].y * gridSize + gridSize / 2
+            );
+        }
+
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    smoothSnake.forEach((part, index) => {
         const offset = index === 0 ? 1 : 2;
         const size = index === 0 ? gridSize - 2 : gridSize - 4;
 
@@ -842,6 +909,7 @@ function checkCollision() {
 function endGame() {
     clearInterval(gameLoop);
     if (effectTimerInterval) clearInterval(effectTimerInterval);
+    if (animationFrame) cancelAnimationFrame(animationFrame);
 
     gameStarted = false;
 
@@ -856,6 +924,7 @@ function endGame() {
 function winGame() {
     clearInterval(gameLoop);
     if (effectTimerInterval) clearInterval(effectTimerInterval);
+    if (animationFrame) cancelAnimationFrame(animationFrame);
 
     gameStarted = false;
 
