@@ -24,8 +24,7 @@
                 <h3>Инструкция</h3>
                 <p>ПК → W A S D / Стрелки<br>Телефон → свайпы и кнопки</p>
                 <p>Каждые 5 яблок повышают уровень и скорость змейки.</p>
-                <p>Препятствия появляются только в безопасных местах и не возникают поверх змейки.</p>
-                <p>Очки начисляются по геометрической прогрессии: 1 → 2 → 4 → 8 → 16...</p>
+                <p>Разные яблоки дают разные эффекты.</p>
                 <p>Цель: пройти до 10 уровня.</p>
             </div>
 
@@ -34,6 +33,11 @@
                 <div class="stat-box"><span>Счёт</span><strong id="score">0</strong></div>
                 <div class="stat-box"><span>Уровень</span><strong id="level">1</strong></div>
                 <div class="stat-box"><span>Очки за еду</span><strong id="foodValue">1</strong></div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-box"><span>Эффект</span><strong id="activeEffect">Нет</strong></div>
+                <div class="stat-box"><span>Тип еды</span><strong id="foodType">Обычная</strong></div>
             </div>
 
             <div class="game-buttons">
@@ -103,6 +107,8 @@ const foodValueText = document.getElementById("foodValue");
 const gameOverText = document.getElementById("gameOver");
 const winText = document.getElementById("winText");
 const bestScoreText = document.getElementById("bestScore");
+const activeEffectText = document.getElementById("activeEffect");
+const foodTypeText = document.getElementById("foodType");
 
 const eatSound = document.getElementById("eatSound");
 const deathSound = document.getElementById("deathSound");
@@ -123,8 +129,47 @@ const maps = [
     { bg: "#3b1204", grid: "rgba(255,120,0,0.08)", obstacle: "#ff6600", name: "INFERNO" }
 ];
 
+const foodTypes = [
+    {
+        id: "normal",
+        name: "Обычная",
+        color: "#ff3355",
+        glow: "#ff3355",
+        chance: 55
+    },
+    {
+        id: "slow",
+        name: "Замедление",
+        color: "#38bdf8",
+        glow: "#38bdf8",
+        chance: 15
+    },
+    {
+        id: "gold",
+        name: "Золотая x3",
+        color: "#facc15",
+        glow: "#facc15",
+        chance: 12
+    },
+    {
+        id: "coin",
+        name: "Монетная",
+        color: "#22c55e",
+        glow: "#22c55e",
+        chance: 10
+    },
+    {
+        id: "ghost",
+        name: "Призрак",
+        color: "#a855f7",
+        glow: "#a855f7",
+        chance: 8
+    }
+];
+
 let snake = [{x: 10, y: 10}];
 let food = {};
+let currentFoodType = foodTypes[0];
 let obstacles = [];
 let particles = [];
 
@@ -140,10 +185,15 @@ let foodValue = 1;
 let level = 1;
 let eatenFood = 0;
 
-let speed = 150;
+let baseSpeed = 145;
+let speed = baseSpeed;
 let gameLoop = null;
 let gameStarted = false;
 let levelTextAnimation = 0;
+
+let slowTimer = 0;
+let ghostCharges = 0;
+let effectTimerInterval = null;
 
 gameOverText.style.display = "none";
 winText.style.display = "none";
@@ -163,13 +213,19 @@ function startGame() {
     level = 1;
     eatenFood = 0;
     foodValue = 1;
-    speed = 145;
-    gameStarted = true;
+
+    baseSpeed = 145;
+    speed = baseSpeed;
+
+    slowTimer = 0;
+    ghostCharges = 0;
     levelTextAnimation = 0;
+    gameStarted = true;
 
     scoreText.innerText = score;
     levelText.innerText = level;
     foodValueText.innerText = foodValue;
+    activeEffectText.innerText = "Нет";
 
     gameOverText.style.display = "none";
     winText.style.display = "none";
@@ -178,8 +234,11 @@ function startGame() {
     generateFood();
 
     if (gameLoop) clearInterval(gameLoop);
+    if (effectTimerInterval) clearInterval(effectTimerInterval);
 
     gameLoop = setInterval(drawGame, speed);
+    effectTimerInterval = setInterval(updateEffectTimers, 1000);
+
     drawScene();
 }
 
@@ -208,6 +267,7 @@ function drawScene() {
     drawSnake();
     drawParticles();
     drawLevelHud();
+    drawGhostHud();
 }
 
 function drawBackground() {
@@ -251,7 +311,8 @@ function moveSnake() {
     snake.unshift(head);
 
     if (head.x === food.x && head.y === food.y) {
-        score += foodValue;
+        applyFoodEffect(currentFoodType);
+
         eatenFood++;
 
         playSound(eatSound);
@@ -259,7 +320,7 @@ function moveSnake() {
         createParticles(
             food.x * gridSize + gridSize / 2,
             food.y * gridSize + gridSize / 2,
-            "#ff3355"
+            currentFoodType.color
         );
 
         if (score > bestScore) {
@@ -278,6 +339,63 @@ function moveSnake() {
     }
 }
 
+function applyFoodEffect(type) {
+    if (type.id === "normal") {
+        score += foodValue;
+        activeEffectText.innerText = "Нет";
+    }
+
+    if (type.id === "slow") {
+        score += foodValue;
+        slowTimer = 5;
+        applySpeed();
+        activeEffectText.innerText = "Замедление 5с";
+    }
+
+    if (type.id === "gold") {
+        score += foodValue * 3;
+        activeEffectText.innerText = "x3 очки";
+    }
+
+    if (type.id === "coin") {
+        score += foodValue;
+        score += 10;
+        activeEffectText.innerText = "+10 бонус";
+    }
+
+    if (type.id === "ghost") {
+        score += foodValue;
+        ghostCharges += 1;
+        activeEffectText.innerText = "Призрак x" + ghostCharges;
+    }
+}
+
+function updateEffectTimers() {
+    if (!gameStarted) return;
+
+    if (slowTimer > 0) {
+        slowTimer--;
+        activeEffectText.innerText = "Замедление " + slowTimer + "с";
+
+        if (slowTimer <= 0) {
+            applySpeed();
+            activeEffectText.innerText = ghostCharges > 0 ? "Призрак x" + ghostCharges : "Нет";
+        }
+    }
+}
+
+function applySpeed() {
+    if (gameLoop) clearInterval(gameLoop);
+
+    if (slowTimer > 0) {
+        speed = baseSpeed + 55;
+    } else {
+        speed = baseSpeed;
+    }
+
+    gameLoop = setInterval(drawGame, speed);
+}
+
 function updateLevel() {
     const newLevel = Math.floor(eatenFood / 5) + 1;
 
@@ -286,15 +404,14 @@ function updateLevel() {
         levelText.innerText = level;
 
         foodValue = Math.pow(2, level - 1);
-        speed = Math.max(65, speed - 8);
+        baseSpeed = Math.max(65, baseSpeed - 8);
 
         obstacles = generateSafeObstacles(level);
         levelTextAnimation = 45;
 
         createParticles(200, 200, getCurrentMap().obstacle);
 
-        clearInterval(gameLoop);
-        gameLoop = setInterval(drawGame, speed);
+        applySpeed();
     }
 
     if (level >= finalLevel) {
@@ -379,6 +496,64 @@ function generateSafeObstacles(currentLevel) {
     });
 }
 
+function chooseFoodType() {
+    let totalChance = foodTypes.reduce((sum, type) => sum + type.chance, 0);
+    let random = Math.random() * totalChance;
+
+    for (let type of foodTypes) {
+        if (random < type.chance) return type;
+        random -= type.chance;
+    }
+
+    return foodTypes[0];
+}
+
+function generateFood() {
+    let valid = false;
+
+    currentFoodType = chooseFoodType();
+    foodTypeText.innerText = currentFoodType.name;
+
+    while (!valid) {
+        food = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount)
+        };
+
+        valid = true;
+
+        if (isSnakeCell(food.x, food.y)) valid = false;
+        if (isObstacleCell(food.x, food.y)) valid = false;
+    }
+}
+
+function drawFood() {
+    ctx.fillStyle = currentFoodType.color;
+    ctx.shadowColor = currentFoodType.glow;
+    ctx.shadowBlur = 20;
+
+    ctx.beginPath();
+    ctx.arc(food.x * gridSize + 10, food.y * gridSize + 10, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.font = "bold 10px Arial";
+    ctx.textAlign = "center";
+
+    let symbol = "●";
+
+    if (currentFoodType.id === "slow") symbol = "S";
+    if (currentFoodType.id === "gold") symbol = "x3";
+    if (currentFoodType.id === "coin") symbol = "$";
+    if (currentFoodType.id === "ghost") symbol = "G";
+
+    ctx.fillText(symbol, food.x * gridSize + 10, food.y * gridSize + 14);
+    ctx.restore();
+}
+
 function drawObstacles() {
     const currentMap = getCurrentMap();
 
@@ -407,7 +582,8 @@ function drawSnake() {
         if (index === 0) {
             ctx.fillStyle = skinHead;
             ctx.shadowColor = skinHead;
-            ctx.shadowBlur = 22;
+            ctx.shadowBlur = ghostCharges > 0 ? 30 : 22;
+            ctx.globalAlpha = ghostCharges > 0 ? 0.75 : 1;
         } else {
             const gradient = ctx.createLinearGradient(
                 part.x * gridSize,
@@ -420,8 +596,9 @@ function drawSnake() {
             gradient.addColorStop(1, skinBody2);
 
             ctx.fillStyle = gradient;
-            ctx.shadowColor = skinBody1;
-            ctx.shadowBlur = 14;
+            ctx.shadowColor = ghostCharges > 0 ? "#a855f7" : skinBody1;
+            ctx.shadowBlur = ghostCharges > 0 ? 24 : 14;
+            ctx.globalAlpha = ghostCharges > 0 ? 0.65 : 1;
         }
 
         drawRoundedRect(
@@ -432,9 +609,10 @@ function drawSnake() {
             8
         );
 
+        ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
 
-        ctx.strokeStyle = "rgba(255,255,255,0.6)";
+        ctx.strokeStyle = ghostCharges > 0 ? "rgba(168,85,247,0.9)" : "rgba(255,255,255,0.6)";
         ctx.lineWidth = 1;
         ctx.strokeRect(
             part.x * gridSize + 3,
@@ -476,18 +654,6 @@ function drawEyes(part) {
     ctx.beginPath();
     ctx.arc(part.x * gridSize + eye2.x, part.y * gridSize + eye2.y, 2, 0, Math.PI * 2);
     ctx.fill();
-}
-
-function drawFood() {
-    ctx.fillStyle = "#ff3355";
-    ctx.shadowColor = "#ff3355";
-    ctx.shadowBlur = 18;
-
-    ctx.beginPath();
-    ctx.arc(food.x * gridSize + 10, food.y * gridSize + 10, 8, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
 }
 
 function createParticles(x, y, color) {
@@ -555,6 +721,28 @@ function drawLevelHud() {
     levelTextAnimation--;
 }
 
+function drawGhostHud() {
+    if (ghostCharges <= 0) return;
+
+    ctx.save();
+
+    ctx.fillStyle = "rgba(168,85,247,0.25)";
+    ctx.strokeStyle = "#a855f7";
+    ctx.lineWidth = 1;
+
+    drawRoundedStrokeRect(12, 340, 115, 42, 12);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px Arial";
+    ctx.textAlign = "center";
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "#a855f7";
+
+    ctx.fillText("GHOST x" + ghostCharges, 69, 365);
+
+    ctx.restore();
+}
+
 function drawRoundedStrokeRect(x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -570,20 +758,18 @@ function drawRoundedStrokeRect(x, y, width, height, radius) {
     ctx.stroke();
 }
 
-function generateFood() {
-    let valid = false;
-
-    while (!valid) {
-        food = {
-            x: Math.floor(Math.random() * tileCount),
-            y: Math.floor(Math.random() * tileCount)
-        };
-
-        valid = true;
-
-        if (isSnakeCell(food.x, food.y)) valid = false;
-        if (isObstacleCell(food.x, food.y)) valid = false;
-    }
+function drawRoundedRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.fill();
 }
 
 function isSnakeCell(x, y) {
@@ -605,13 +791,24 @@ function checkCollision() {
         if (snake[i].x === head.x && snake[i].y === head.y) return true;
     }
 
-    if (isObstacleCell(head.x, head.y)) return true;
+    if (isObstacleCell(head.x, head.y)) {
+        if (ghostCharges > 0) {
+            ghostCharges--;
+            activeEffectText.innerText = ghostCharges > 0 ? "Призрак x" + ghostCharges : "Нет";
+            createParticles(head.x * gridSize + 10, head.y * gridSize + 10, "#a855f7");
+            return false;
+        }
+
+        return true;
+    }
 
     return false;
 }
 
 function endGame() {
     clearInterval(gameLoop);
+    if (effectTimerInterval) clearInterval(effectTimerInterval);
+
     gameStarted = false;
 
     playSound(deathSound);
@@ -624,6 +821,8 @@ function endGame() {
 
 function winGame() {
     clearInterval(gameLoop);
+    if (effectTimerInterval) clearInterval(effectTimerInterval);
+
     gameStarted = false;
 
     createParticles(200, 200, "#56ffb1");
@@ -644,20 +843,6 @@ function saveScore(finalScore) {
 function playSound(sound) {
     sound.currentTime = 0;
     sound.play().catch(() => {});
-}
-
-function drawRoundedRect(x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.fill();
 }
 
 function setDirection(direction) {
