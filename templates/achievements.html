@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Достижения | NEON SNAKE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="background-grid"></div>
+
+<div class="shop-page">
+    <div class="glass-card shop-card">
+
+        <div class="shop-header">
+            <div>
+                <h1 class="title">ДОСТИЖЕНИЯ</h1>
+                <p class="welcome">Игрок: {{ username }}</p>
+            </div>
+        </div>
+
+        <div class="shop-buttons">
+            <a href="/game" class="play-btn">Назад в игру</a>
+            <a href="/shop" class="play-btn">Магазин</a>
+            <a href="/logout" class="logout-btn">Выйти</a>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <span>Рекорд</span>
+                <strong>{{ stats.best_score }}</strong>
+            </div>
+
+            <div class="stat-box">
+                <span>Лучший уровень</span>
+                <strong>{{ stats.best_level }}</strong>
+            </div>
+
+            <div class="stat-box">
+                <span>Игр сыграно</span>
+                <strong>{{ stats.games_played }}</strong>
+            </div>
+
+            <div class="stat-box">
+                <span>Монеты</span>
+                <strong>{{ stats.coins }}</strong>
+            </div>
+        </div>
+
+        <div class="achievements-grid">
+            {% for achievement in achievements %}
+            <div class="achievement-card {% if achievement.unlocked %}unlocked{% else %}locked{% endif %}">
+                <div class="achievement-icon">
+                    {% if achievement.unlocked %}
+                        🏆
+                    {% else %}
+                        🔒
+                    {% endif %}
+                </div>
+
+                <h2>{{ achievement.title }}</h2>
+
+                <p>{{ achievement.description }}</p>
+
+                <div class="achievement-reward">
+                    Награда: {{ achievement.reward }} 💰
+                </div>
+
+                {% if achievement.unlocked %}
+                    <div class="achievement-status unlocked-text">Получено</div>
+                {% else %}
+                    <div class="achievement-status locked-text">Не открыто</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

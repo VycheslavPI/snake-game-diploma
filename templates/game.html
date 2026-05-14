@@ -44,6 +44,7 @@
                 <button id="startBtn" class="play-btn">Начать игру</button>
                 <button class="play-btn" onclick="toggleFullscreen()">Полный экран</button>
                 <a href="/shop" class="play-btn">Магазин</a>
+                <a href="/achievements" class="play-btn">Достижения</a>
             </div>
 
             <div class="canvas-wrap">
@@ -1203,7 +1204,10 @@ function saveScore(finalScore) {
     fetch('/save_score', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({score: finalScore})
+        body: JSON.stringify({
+            score: finalScore,
+            level: level
+        })
     });
 }
 
