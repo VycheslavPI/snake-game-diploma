@@ -17,6 +17,8 @@ const resultBest = document.getElementById("resultBest");
 const resultLevel = document.getElementById("resultLevel");
 const resultAchievements = document.getElementById("resultAchievements");
 const gameOverlay = document.getElementById("gameOverlay");
+const levelComplete = document.getElementById("levelComplete");
+const levelCompleteText = document.getElementById("levelCompleteText");
 const pauseText = document.getElementById("pauseText");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
@@ -100,6 +102,7 @@ let effectTimerInterval = null;
 let audioContext = null;
 let musicTimer = null;
 let musicStep = 0;
+let levelCompleteTimer = null;
 let soundEnabled = localStorage.getItem("neonSnakeSound") !== "off";
 let effectsQuality = localStorage.getItem("neonSnakeEffects") || "high";
 
@@ -149,6 +152,7 @@ function startGame() {
     if (effectTimerInterval) clearInterval(effectTimerInterval);
     if (animationFrame) cancelAnimationFrame(animationFrame);
     stopMusic();
+    hideLevelComplete();
 
     gameStarted = true;
     gamePaused = false;
@@ -164,6 +168,7 @@ function startGame() {
     winText.style.display = "none";
     resultPanel.hidden = true;
     gameOverlay.hidden = true;
+    levelComplete.hidden = true;
     pauseText.hidden = true;
     updateSettingsButtons();
 
@@ -393,6 +398,7 @@ function updateLevel() {
 
         createParticles(200, 200, getCurrentMap().obstacle);
         playTone("level");
+        showLevelComplete(level);
 
         if (level === 3 && !miniBossCompleted) {
             startMiniBoss();
@@ -1276,7 +1282,40 @@ function showResult(finalScore, data) {
     }
 
     resultPanel.hidden = false;
+    levelComplete.hidden = true;
     gameOverlay.hidden = false;
+}
+
+function showLevelComplete(currentLevel) {
+    if (levelCompleteTimer) clearTimeout(levelCompleteTimer);
+
+    levelCompleteText.innerText = "LEVEL " + currentLevel;
+    levelComplete.hidden = false;
+    levelComplete.classList.remove("level-complete-pop");
+    void levelComplete.offsetWidth;
+    levelComplete.classList.add("level-complete-pop");
+
+    if (resultPanel.hidden && pauseText.hidden) {
+        gameOverlay.hidden = false;
+    }
+
+    levelCompleteTimer = setTimeout(hideLevelComplete, 900);
+}
+
+function hideLevelComplete() {
+    if (levelCompleteTimer) {
+        clearTimeout(levelCompleteTimer);
+        levelCompleteTimer = null;
+    }
+
+    if (!levelComplete) return;
+
+    levelComplete.hidden = true;
+    levelComplete.classList.remove("level-complete-pop");
+
+    if (resultPanel.hidden && pauseText.hidden) {
+        gameOverlay.hidden = true;
+    }
 }
 
 function getAudioContext() {
@@ -1410,6 +1449,7 @@ function togglePause() {
     gamePaused = !gamePaused;
     pauseText.hidden = !gamePaused;
     resultPanel.hidden = true;
+    levelComplete.hidden = true;
     gameOverlay.hidden = !gamePaused;
 
     if (!gamePaused) {
