@@ -53,6 +53,8 @@ body{
     width:100%;
     max-width:850px;
     padding:35px;
+    position:relative;
+    overflow:hidden;
 }
 
 .leaderboard{
@@ -254,6 +256,93 @@ input:focus{
 .auth-card{
     max-width:420px;
     text-align:center;
+}
+
+.boot-screen{
+    position:absolute;
+    inset:0;
+    z-index:20;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    padding:28px;
+    background:
+        radial-gradient(circle at 50% 35%, rgba(0,255,170,0.18), transparent 34%),
+        linear-gradient(180deg, rgba(3,13,28,0.98), rgba(2,8,20,0.96));
+    text-align:center;
+    transition:opacity 0.45s ease, visibility 0.45s ease;
+}
+
+.boot-screen::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size:22px 22px;
+    opacity:0.34;
+}
+
+.boot-screen-hidden{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+}
+
+.boot-logo,
+.boot-subtitle,
+.boot-loader,
+.boot-status,
+.boot-start{
+    position:relative;
+    z-index:1;
+}
+
+.boot-logo{
+    color:#56ffb1;
+    font-size:46px;
+    font-weight:bold;
+    text-shadow:0 0 20px rgba(0,255,150,0.9), 0 0 48px rgba(0,204,255,0.45);
+}
+
+.boot-subtitle{
+    color:#9fdcff;
+    font-size:13px;
+    font-weight:bold;
+    letter-spacing:3px;
+}
+
+.boot-loader{
+    width:min(360px, 86%);
+    height:12px;
+    border-radius:999px;
+    overflow:hidden;
+    border:1px solid rgba(86,255,177,0.45);
+    background:rgba(5,20,45,0.92);
+    box-shadow:0 0 18px rgba(0,255,150,0.2);
+}
+
+.boot-progress{
+    width:0%;
+    height:100%;
+    border-radius:999px;
+    background:linear-gradient(90deg,#00ff88,#00ccff,#facc15);
+    box-shadow:0 0 18px rgba(0,255,150,0.8);
+    transition:width 0.14s ease;
+}
+
+.boot-status{
+    min-height:22px;
+    color:#dfffee;
+    font-size:14px;
+}
+
+.boot-start{
+    margin-top:8px;
+    margin-bottom:0;
 }
 
 @keyframes gridMove{

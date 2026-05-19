@@ -1,6 +1,10 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", {alpha: false});
 const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+const bootScreen = document.getElementById("bootScreen");
+const bootProgress = document.getElementById("bootProgress");
+const bootStatus = document.getElementById("bootStatus");
+const bootStartBtn = document.getElementById("bootStartBtn");
 
 const scoreText = document.getElementById("score");
 const levelText = document.getElementById("level");
@@ -111,13 +115,44 @@ let effectsQuality = localStorage.getItem("neonSnakeEffects") || (isCoarsePointe
 gameOverText.style.display = "none";
 winText.style.display = "none";
 updateSettingsButtons();
+runBootSequence();
 
 document.getElementById("startBtn").addEventListener("click", startGame);
+bootStartBtn.addEventListener("click", () => {
+    bootScreen.classList.add("boot-screen-hidden");
+    startGame();
+});
 pauseBtn.addEventListener("click", togglePause);
 soundBtn.addEventListener("click", toggleSound);
 effectsBtn.addEventListener("click", toggleEffectsQuality);
 
+function runBootSequence() {
+    const steps = [
+        "Загрузка арены...",
+        "Синхронизация неона...",
+        "Подготовка змейки...",
+        "Система готова"
+    ];
+
+    let progress = 0;
+
+    const bootTimer = setInterval(() => {
+        progress = Math.min(progress + 4 + Math.random() * 9, 100);
+        bootProgress.style.width = progress + "%";
+        bootStatus.innerText = steps[Math.min(Math.floor(progress / 28), steps.length - 1)];
+
+        if (progress >= 100) {
+            clearInterval(bootTimer);
+            bootProgress.style.width = "100%";
+            bootStatus.innerText = "Готово к запуску";
+            bootStartBtn.hidden = false;
+        }
+    }, 110);
+}
+
 function startGame() {
+    bootScreen.classList.add("boot-screen-hidden");
+
     snake = [{x: 10, y: 10}];
     previousSnake = snake.map(part => ({...part}));
 
