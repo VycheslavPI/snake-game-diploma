@@ -53,23 +53,25 @@
 
             <div class="canvas-wrap">
                 <canvas id="gameCanvas" width="400" height="400"></canvas>
+                <div id="gameOverlay" class="game-overlay" hidden>
+                    <div id="pauseText" class="pause-text" hidden>Пауза</div>
+
+                    <div id="resultPanel" class="result-panel" hidden>
+                        <h2 id="resultTitle">Игра окончена</h2>
+                        <div class="result-stats">
+                            <div><span>Счёт</span><strong id="resultScore">0</strong></div>
+                            <div><span>Монеты</span><strong id="resultCoins">0</strong></div>
+                            <div><span>Рекорд</span><strong id="resultBest">0</strong></div>
+                            <div><span>Уровень</span><strong id="resultLevel">1</strong></div>
+                        </div>
+                        <div id="resultAchievements" class="result-achievements"></div>
+                        <button id="restartBtn" class="play-btn" type="button" onclick="startGame()">Играть снова</button>
+                    </div>
+                </div>
             </div>
 
             <div id="gameOver" class="game-over">Игра окончена!</div>
             <div id="winText" class="game-over" style="color:#56ffb1;">Победа! Ты дошёл до 10 уровня!</div>
-            <div id="pauseText" class="pause-text" hidden>Пауза</div>
-
-            <div id="resultPanel" class="result-panel" hidden>
-                <h2 id="resultTitle">Игра окончена</h2>
-                <div class="result-stats">
-                    <div><span>Счёт</span><strong id="resultScore">0</strong></div>
-                    <div><span>Монеты</span><strong id="resultCoins">0</strong></div>
-                    <div><span>Рекорд</span><strong id="resultBest">0</strong></div>
-                    <div><span>Уровень</span><strong id="resultLevel">1</strong></div>
-                </div>
-                <div id="resultAchievements" class="result-achievements"></div>
-                <button id="restartBtn" class="play-btn" type="button" onclick="startGame()">Играть снова</button>
-            </div>
 
             <div class="mobile-controls">
                 <button class="control-btn" onclick="setDirection('UP')">▲</button>

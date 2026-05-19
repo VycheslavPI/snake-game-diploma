@@ -16,6 +16,7 @@ const resultCoins = document.getElementById("resultCoins");
 const resultBest = document.getElementById("resultBest");
 const resultLevel = document.getElementById("resultLevel");
 const resultAchievements = document.getElementById("resultAchievements");
+const gameOverlay = document.getElementById("gameOverlay");
 const pauseText = document.getElementById("pauseText");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
@@ -159,6 +160,7 @@ function startGame() {
     gameOverText.style.display = "none";
     winText.style.display = "none";
     resultPanel.hidden = true;
+    gameOverlay.hidden = true;
     pauseText.hidden = true;
     updateSettingsButtons();
 
@@ -1191,6 +1193,7 @@ function endGame() {
     gameStarted = false;
     gamePaused = false;
     pauseText.hidden = true;
+    gameOverlay.hidden = true;
     updateSettingsButtons();
 
     playTone("death");
@@ -1219,6 +1222,7 @@ function winGame() {
     gameStarted = false;
     gamePaused = false;
     pauseText.hidden = true;
+    gameOverlay.hidden = true;
     updateSettingsButtons();
 
     createParticles(200, 200, "#56ffb1");
@@ -1264,6 +1268,7 @@ function showResult(finalScore, data) {
     }
 
     resultPanel.hidden = false;
+    gameOverlay.hidden = false;
 }
 
 function getAudioContext() {
@@ -1330,6 +1335,8 @@ function togglePause() {
 
     gamePaused = !gamePaused;
     pauseText.hidden = !gamePaused;
+    resultPanel.hidden = true;
+    gameOverlay.hidden = !gamePaused;
 
     if (!gamePaused) {
         lastMoveTime = performance.now();

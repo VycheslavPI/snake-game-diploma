@@ -191,11 +191,16 @@ canvas{
 }
 
 .pause-text{
-    margin-top:15px;
     color:#facc15;
-    font-size:24px;
+    font-size:32px;
+    font-weight:bold;
     text-align:center;
     text-shadow:0 0 15px rgba(250,204,21,0.7);
+    background:rgba(3,13,28,0.72);
+    border:1px solid rgba(250,204,21,0.38);
+    border-radius:18px;
+    padding:18px 32px;
+    backdrop-filter:blur(8px);
 }
 
 .pause-text[hidden]{
@@ -375,6 +380,7 @@ input:focus{
     display:flex;
     justify-content:center;
     align-items:center;
+    position:relative;
 }
 
 #gameContainer:fullscreen{
@@ -714,15 +720,31 @@ body{
     cursor:pointer;
 }
 
+.game-overlay{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    pointer-events:none;
+}
+
+.game-overlay[hidden]{
+    display:none;
+}
+
 .result-panel{
-    margin:18px auto 0;
     max-width:420px;
+    width:min(90%, 420px);
     padding:20px;
     border-radius:18px;
     background:rgba(5,20,45,0.94);
     border:1px solid rgba(0,255,150,0.22);
     text-align:center;
     box-shadow:0 0 24px rgba(0,255,150,0.16);
+    pointer-events:auto;
+    backdrop-filter:blur(10px);
 }
 
 .result-panel[hidden]{
@@ -759,4 +781,8 @@ body{
     margin-bottom:14px;
     color:#dfffee;
     line-height:1.45;
+}
+
+.result-panel .play-btn{
+    margin-bottom:0;
 }
