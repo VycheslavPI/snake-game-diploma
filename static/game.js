@@ -98,6 +98,8 @@ let slowTimer = 0;
 let ghostCharges = 0;
 let effectTimerInterval = null;
 let audioContext = null;
+let musicTimer = null;
+let musicStep = 0;
 let soundEnabled = localStorage.getItem("neonSnakeSound") !== "off";
 let effectsQuality = localStorage.getItem("neonSnakeEffects") || "high";
 
@@ -146,6 +148,7 @@ function startGame() {
     if (gameLoop) clearInterval(gameLoop);
     if (effectTimerInterval) clearInterval(effectTimerInterval);
     if (animationFrame) cancelAnimationFrame(animationFrame);
+    stopMusic();
 
     gameStarted = true;
     gamePaused = false;
@@ -169,6 +172,7 @@ function startGame() {
 
     gameLoop = setInterval(updateGameLogic, speed);
     effectTimerInterval = setInterval(updateEffectTimers, 1000);
+    startMusic();
 
     renderLoop();
 }
@@ -388,6 +392,7 @@ function updateLevel() {
         levelTextAnimation = 45;
 
         createParticles(200, 200, getCurrentMap().obstacle);
+        playTone("level");
 
         if (level === 3 && !miniBossCompleted) {
             startMiniBoss();
@@ -407,6 +412,7 @@ function startMiniBoss() {
     miniBossLasers = [];
 
     activeEffectText.innerText = "⚠ MINI BOSS ⚠";
+    playTone("boss");
 
     spawnMiniBossLasers();
 
@@ -1194,6 +1200,7 @@ function endGame() {
     gamePaused = false;
     pauseText.hidden = true;
     gameOverlay.hidden = true;
+    stopMusic();
     updateSettingsButtons();
 
     playTone("death");
@@ -1223,6 +1230,7 @@ function winGame() {
     gamePaused = false;
     pauseText.hidden = true;
     gameOverlay.hidden = true;
+    stopMusic();
     updateSettingsButtons();
 
     createParticles(200, 200, "#56ffb1");
@@ -1289,11 +1297,15 @@ function playTone(type) {
 
     const settings = {
         eat: {frequency: 620, endFrequency: 920, duration: 0.08, volume: 0.08},
+        level: {frequency: 420, endFrequency: 1180, duration: 0.22, volume: 0.1},
+        boss: {frequency: 90, endFrequency: 240, duration: 0.42, volume: 0.13},
         death: {frequency: 180, endFrequency: 70, duration: 0.25, volume: 0.11},
         win: {frequency: 520, endFrequency: 1040, duration: 0.32, volume: 0.09}
     }[type];
 
-    oscillator.type = type === "death" ? "sawtooth" : "triangle";
+    if (!settings) return;
+
+    oscillator.type = type === "death" || type === "boss" ? "sawtooth" : "triangle";
     oscillator.frequency.setValueAtTime(settings.frequency, now);
     oscillator.frequency.exponentialRampToValueAtTime(settings.endFrequency, now + settings.duration);
 
@@ -1306,6 +1318,61 @@ function playTone(type) {
     oscillator.stop(now + settings.duration);
 }
 
+function playMusicNote(frequency, duration, volume, delay = 0) {
+    if (!soundEnabled || gamePaused || !gameStarted) return;
+
+    const audio = getAudioContext();
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    const filter = audio.createBiquadFilter();
+    const now = audio.currentTime + delay;
+
+    oscillator.type = "triangle";
+    oscillator.frequency.setValueAtTime(frequency, now);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1400, now);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(volume, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    oscillator.connect(filter);
+    filter.connect(gain);
+    gain.connect(audio.destination);
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.04);
+}
+
+function playAmbientStep() {
+    const bass = [110, 110, 146.83, 98, 130.81, 98, 146.83, 164.81];
+    const arp = [440, 554.37, 659.25, 554.37, 493.88, 392, 493.88, 587.33];
+    const index = musicStep % bass.length;
+
+    playMusicNote(bass[index], 0.45, 0.025);
+
+    if (musicStep % 2 === 0) {
+        playMusicNote(arp[index], 0.16, 0.018, 0.08);
+    }
+
+    musicStep++;
+}
+
+function startMusic() {
+    if (!soundEnabled || musicTimer || !gameStarted || gamePaused) return;
+
+    musicStep = 0;
+    playAmbientStep();
+    musicTimer = setInterval(playAmbientStep, 480);
+}
+
+function stopMusic() {
+    if (!musicTimer) return;
+
+    clearInterval(musicTimer);
+    musicTimer = null;
+}
+
 function updateSettingsButtons() {
     soundBtn.innerText = soundEnabled ? "Звук: вкл" : "Звук: выкл";
     effectsBtn.innerText = effectsQuality === "high" ? "Эффекты: макс" : "Эффекты: лайт";
@@ -1315,6 +1382,13 @@ function updateSettingsButtons() {
 function toggleSound() {
     soundEnabled = !soundEnabled;
     localStorage.setItem("neonSnakeSound", soundEnabled ? "on" : "off");
+
+    if (soundEnabled) {
+        startMusic();
+    } else {
+        stopMusic();
+    }
+
     updateSettingsButtons();
 }
 
@@ -1340,6 +1414,9 @@ function togglePause() {
 
     if (!gamePaused) {
         lastMoveTime = performance.now();
+        startMusic();
+    } else {
+        stopMusic();
     }
 
     updateSettingsButtons();
