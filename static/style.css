@@ -119,10 +119,16 @@ body{
     display:block;
     margin-bottom:6px;
     color:#9cb8d6;
+    white-space:nowrap;
 }
 
 .stat-box strong{
     color:#56ffb1;
+    display:block;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
 }
 
 .play-btn,

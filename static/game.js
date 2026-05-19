@@ -217,7 +217,7 @@ function getSmoothProgress() {
     const rawProgress = (performance.now() - lastMoveTime) / speed;
     const progress = Math.min(rawProgress, 1);
 
-    return progress * progress * (3 - 2 * progress);
+    return progress;
 }
 
 function getInterpolatedSnake() {
@@ -226,10 +226,9 @@ function getInterpolatedSnake() {
     const progress = getSmoothProgress();
 
     return snake.map((part, index) => {
-        const previous =
-            previousSnake[index] ||
-            previousSnake[previousSnake.length - 1] ||
-            part;
+        const previous = index === 0
+            ? previousSnake[0]
+            : previousSnake[index - 1] || previousSnake[previousSnake.length - 1] || part;
 
         return {
             x: previous.x + (part.x - previous.x) * progress,
@@ -306,7 +305,7 @@ function moveSnake() {
 
         playTone("eat");
 
-        createParticles(
+        createFoodParticles(
             food.x * gridSize + gridSize / 2,
             food.y * gridSize + gridSize / 2,
             currentFoodType.color
@@ -1033,27 +1032,53 @@ function drawEyes(head) {
 }
 
 function createParticles(x, y, color) {
-    const particleCount = effectsQuality === "high" ? 18 : 7;
+    const particleCount = effectsQuality === "high" ? 14 : 6;
 
     for (let i = 0; i < particleCount; i++) {
+        const life = effectsQuality === "high" ? 24 : 16;
+
         particles.push({
             x: x,
             y: y,
             dx: (Math.random() - 0.5) * 6,
             dy: (Math.random() - 0.5) * 6,
-            life: effectsQuality === "high" ? 28 : 18,
+            life: life,
+            maxLife: life,
+            size: 3,
+            color: color
+        });
+    }
+}
+
+function createFoodParticles(x, y, color) {
+    const particleCount = effectsQuality === "high" ? 8 : 4;
+
+    for (let i = 0; i < particleCount; i++) {
+        const life = effectsQuality === "high" ? 16 : 10;
+
+        particles.push({
+            x: x,
+            y: y,
+            dx: (Math.random() - 0.5) * 3.2,
+            dy: (Math.random() - 0.5) * 3.2,
+            life: life,
+            maxLife: life,
+            size: 2.3,
             color: color
         });
     }
 }
 
 function drawParticles() {
-    particles.forEach((p, index) => {
+    for (let index = particles.length - 1; index >= 0; index--) {
+        const p = particles[index];
+        const maxLife = p.maxLife || 28;
+
         ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life / 28;
+        ctx.globalAlpha = p.life / maxLife;
 
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.size || 3, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.globalAlpha = 1;
@@ -1065,7 +1090,7 @@ function drawParticles() {
         if (p.life <= 0) {
             particles.splice(index, 1);
         }
-    });
+    }
 }
 
 function drawLevelHud() {
