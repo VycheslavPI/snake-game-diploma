@@ -1,5 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d", {alpha: false});
+const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
 const scoreText = document.getElementById("score");
 const levelText = document.getElementById("level");
@@ -23,6 +24,7 @@ const pauseText = document.getElementById("pauseText");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
 const effectsBtn = document.getElementById("effectsBtn");
+const touchFeedback = document.getElementById("touchFeedback");
 
 const skinHead = window.GAME_CONFIG.skin.head;
 const skinBody1 = window.GAME_CONFIG.skin.body1;
@@ -104,7 +106,7 @@ let musicTimer = null;
 let musicStep = 0;
 let levelCompleteTimer = null;
 let soundEnabled = localStorage.getItem("neonSnakeSound") !== "off";
-let effectsQuality = localStorage.getItem("neonSnakeEffects") || "high";
+let effectsQuality = localStorage.getItem("neonSnakeEffects") || (isCoarsePointer ? "low" : "high");
 
 gameOverText.style.display = "none";
 winText.style.display = "none";
@@ -1629,11 +1631,34 @@ document.addEventListener("keydown", (event) => {
 let touchStartX = 0;
 let touchStartY = 0;
 
+function showTouchFeedback(clientX, clientY) {
+    const wrapRect = canvas.parentElement.getBoundingClientRect();
+
+    touchFeedback.hidden = false;
+    touchFeedback.classList.remove("touch-feedback-pop");
+    touchFeedback.style.left = (clientX - wrapRect.left) + "px";
+    touchFeedback.style.top = (clientY - wrapRect.top) + "px";
+    void touchFeedback.offsetWidth;
+    touchFeedback.classList.add("touch-feedback-pop");
+
+    setTimeout(() => {
+        touchFeedback.hidden = true;
+        touchFeedback.classList.remove("touch-feedback-pop");
+    }, 260);
+}
+
+function vibrateTouch(duration = 12) {
+    if ("vibrate" in navigator) {
+        navigator.vibrate(duration);
+    }
+}
+
 canvas.addEventListener("touchstart", (e) => {
     e.preventDefault();
 
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
+    showTouchFeedback(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
 }, {passive: false});
 
 canvas.addEventListener("touchend", (e) => {
@@ -1645,13 +1670,19 @@ canvas.addEventListener("touchend", (e) => {
     let dxSwipe = touchEndX - touchStartX;
     let dySwipe = touchEndY - touchStartY;
 
-    if (Math.abs(dxSwipe) < 25 && Math.abs(dySwipe) < 25) return;
+    if (Math.abs(dxSwipe) < 25 && Math.abs(dySwipe) < 25) {
+        if (!gameStarted) startGame();
+        vibrateTouch(8);
+        return;
+    }
 
     if (Math.abs(dxSwipe) > Math.abs(dySwipe)) {
         dxSwipe > 0 ? setDirection("RIGHT") : setDirection("LEFT");
     } else {
         dySwipe > 0 ? setDirection("DOWN") : setDirection("UP");
     }
+
+    vibrateTouch();
 }, {passive: false});
 
 function toggleFullscreen() {

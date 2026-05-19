@@ -132,8 +132,7 @@ body{
 }
 
 .play-btn,
-.logout-btn,
-.control-btn{
+.logout-btn{
     border:none;
     cursor:pointer;
     transition:0.3s;
@@ -236,33 +235,6 @@ tr:hover{
     background:rgba(0,255,150,0.08);
 }
 
-.mobile-controls{
-    margin-top:20px;
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    gap:10px;
-}
-
-.middle-controls{
-    display:flex;
-    gap:15px;
-}
-
-.control-btn{
-    width:70px;
-    height:70px;
-    border-radius:18px;
-    font-size:28px;
-    background:#13233f;
-    color:#4dff9c;
-    box-shadow:0 0 15px rgba(0,255,150,0.25);
-}
-
-.control-btn:active{
-    transform:scale(0.92);
-}
-
 input{
     width:100%;
     padding:14px;
@@ -335,10 +307,6 @@ input:focus{
         max-width:700px;
     }
 
-    .mobile-controls{
-        display:flex;
-    }
-
     .title{
         font-size:32px;
         text-align:center;
@@ -375,7 +343,9 @@ input:focus{
         display:block;
         text-align:center;
     }
-}.game-buttons{
+}
+
+.game-buttons{
     display:flex;
     gap:12px;
     flex-wrap:wrap;
@@ -387,6 +357,27 @@ input:focus{
     justify-content:center;
     align-items:center;
     position:relative;
+    contain:layout paint;
+}
+
+.touch-feedback{
+    position:absolute;
+    width:58px;
+    height:58px;
+    border:2px solid rgba(86,255,177,0.85);
+    border-radius:50%;
+    pointer-events:none;
+    transform:translate(-50%, -50%) scale(0.45);
+    opacity:0;
+    box-shadow:0 0 22px rgba(0,255,150,0.45);
+}
+
+.touch-feedback[hidden]{
+    display:none;
+}
+
+.touch-feedback-pop{
+    animation:touchFeedbackPop 0.26s ease-out both;
 }
 
 #gameContainer:fullscreen{
@@ -847,5 +838,37 @@ body{
         opacity:0;
         transform:scale(1.04);
         filter:brightness(0.8);
+    }
+}
+
+@keyframes touchFeedbackPop{
+    0%{
+        opacity:0.9;
+        transform:translate(-50%, -50%) scale(0.35);
+    }
+    100%{
+        opacity:0;
+        transform:translate(-50%, -50%) scale(1.15);
+    }
+}
+
+@media(max-width:900px) and (pointer:coarse){
+    .instructions{
+        padding:14px 16px;
+    }
+
+    .game-buttons{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+
+    .play-btn,
+    .logout-btn{
+        padding:11px 10px;
+        font-size:14px;
+    }
+
+    canvas{
+        animation:none;
+        box-shadow:0 0 22px rgba(0,255,150,0.3);
     }
 }
