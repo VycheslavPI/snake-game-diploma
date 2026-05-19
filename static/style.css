@@ -577,3 +577,118 @@ input:focus{
     margin-top:10px;
     font-weight:bold;
 }
+/* ===== PRESENTATION / PRINT FRIENDLY UI ===== */
+
+body{
+    background:#082032;
+}
+
+.background-grid{
+    opacity:0.75;
+    background-color:#082032;
+}
+
+.main-wrapper{
+    align-items:flex-start;
+    gap:28px;
+    padding-top:35px;
+}
+
+.glass-card{
+    max-width:720px;
+    padding:28px;
+    background:rgba(5,18,38,0.92);
+    border:1px solid rgba(0,255,180,0.25);
+    box-shadow:0 0 35px rgba(0,255,150,0.16);
+}
+
+.title{
+    font-size:42px;
+    margin-bottom:8px;
+}
+
+.instructions{
+    padding:18px 22px;
+    margin:22px 0 18px;
+}
+
+.instructions p{
+    margin:9px 0;
+    line-height:1.45;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:12px;
+    margin-bottom:14px;
+}
+
+.stat-box{
+    min-height:62px;
+    padding:10px;
+}
+
+.game-buttons{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+    margin:14px 0 22px;
+}
+
+.play-btn,
+.logout-btn{
+    min-width:auto;
+    text-align:center;
+    padding:12px 14px;
+    border-radius:14px;
+}
+
+.canvas-wrap{
+    display:flex;
+    justify-content:center;
+    margin-top:10px;
+}
+
+#gameCanvas{
+    box-shadow:0 0 28px rgba(0,255,160,0.45);
+}
+
+.leaderboard{
+    margin-top:120px;
+    background:rgba(5,18,38,0.92);
+    border:1px solid rgba(0,255,180,0.22);
+    box-shadow:0 0 30px rgba(0,255,150,0.13);
+}
+
+/* чтобы скриншоты на печати были читаемее */
+@media print{
+    body{
+        background:#ffffff;
+    }
+
+    .background-grid{
+        display:none;
+    }
+
+    .glass-card,
+    .leaderboard{
+        background:#ffffff;
+        color:#000000;
+        box-shadow:none;
+        border:1px solid #333333;
+    }
+
+    .title,
+    .stat-box strong,
+    .instructions h3{
+        color:#008855;
+        text-shadow:none;
+    }
+
+    .play-btn,
+    .logout-btn{
+        color:#000000;
+        box-shadow:none;
+    }
+}
