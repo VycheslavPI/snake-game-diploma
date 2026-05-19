@@ -51,9 +51,9 @@
                 {% if skin_id == selected_skin %}
                     <button class="selected-btn">Выбран</button>
                 {% elif skin_id in owned_skins %}
-                    <a href="/select_skin/{{ skin_id }}" class="play-btn">Выбрать</a>
+                    <form method="POST" action="/select_skin/{{ skin_id }}" class="inline-form"><button type="submit" class="play-btn">Выбрать</button></form>
                 {% else %}
-                    <a href="/buy_skin/{{ skin_id }}" class="buy-btn">Купить</a>
+                    <form method="POST" action="/buy_skin/{{ skin_id }}" class="inline-form"><button type="submit" class="buy-btn">Купить</button></form>
                 {% endif %}
 
             </div>
@@ -85,9 +85,9 @@
                 {% if trail_id == selected_trail %}
                     <button class="selected-btn">Выбран</button>
                 {% elif trail_id in owned_trails %}
-                    <a href="/select_trail/{{ trail_id }}" class="play-btn">Выбрать</a>
+                    <form method="POST" action="/select_trail/{{ trail_id }}" class="inline-form"><button type="submit" class="play-btn">Выбрать</button></form>
                 {% else %}
-                    <a href="/buy_trail/{{ trail_id }}" class="buy-btn">Купить</a>
+                    <form method="POST" action="/buy_trail/{{ trail_id }}" class="inline-form"><button type="submit" class="buy-btn">Купить</button></form>
                 {% endif %}
 
             </div>

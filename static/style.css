@@ -190,6 +190,18 @@ canvas{
     text-shadow:0 0 15px rgba(255,85,119,0.8);
 }
 
+.pause-text{
+    margin-top:15px;
+    color:#facc15;
+    font-size:24px;
+    text-align:center;
+    text-shadow:0 0 15px rgba(250,204,21,0.7);
+}
+
+.pause-text[hidden]{
+    display:none;
+}
+
 table{
     width:100%;
     border-collapse:collapse;
@@ -631,7 +643,7 @@ body{
 
 .game-buttons{
     display:grid;
-    grid-template-columns:repeat(4, 1fr);
+    grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
     gap:10px;
     margin:14px 0 22px;
 }
@@ -691,4 +703,60 @@ body{
         color:#000000;
         box-shadow:none;
     }
+}
+.inline-form{
+    display:inline-block;
+}
+
+.inline-form .play-btn,
+.inline-form .buy-btn{
+    border:none;
+    cursor:pointer;
+}
+
+.result-panel{
+    margin:18px auto 0;
+    max-width:420px;
+    padding:20px;
+    border-radius:18px;
+    background:rgba(5,20,45,0.94);
+    border:1px solid rgba(0,255,150,0.22);
+    text-align:center;
+    box-shadow:0 0 24px rgba(0,255,150,0.16);
+}
+
+.result-panel[hidden]{
+    display:none;
+}
+
+.result-panel h2{
+    color:#56ffb1;
+    margin-bottom:14px;
+}
+
+.result-stats{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.result-stats div{
+    background:#13233f;
+    border:1px solid rgba(0,255,150,0.14);
+    border-radius:14px;
+    padding:12px;
+}
+
+.result-stats span{
+    display:block;
+    margin-bottom:5px;
+    color:#9cb8d6;
+}
+
+.result-achievements{
+    min-height:24px;
+    margin-bottom:14px;
+    color:#dfffee;
+    line-height:1.45;
 }

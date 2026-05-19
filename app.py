@@ -3,11 +3,53 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 import psycopg2.extras
 import os
+import sqlite3
 
 app = Flask(__name__)
-app.secret_key = "secret123"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_PATH = os.environ.get("DATABASE_PATH", "database.db")
+USE_SQLITE = not DATABASE_URL
+
+
+class SQLiteCursor:
+    def __init__(self, cursor, connection):
+        self.cursor = cursor
+        self.connection = connection
+
+    def execute(self, query, params=None):
+        query = query.replace("%s", "?")
+        query = query.replace("SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
+        return self.cursor.execute(query, params or ())
+
+    def fetchone(self):
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
+
+    def fetchall(self):
+        return [dict(row) for row in self.cursor.fetchall()]
+
+    def close(self):
+        self.cursor.close()
+
+
+class SQLiteConnection:
+    def __init__(self, path):
+        self.connection = sqlite3.connect(path)
+        self.connection.row_factory = sqlite3.Row
+
+    def cursor(self):
+        return SQLiteCursor(self.connection.cursor(), self)
+
+    def commit(self):
+        self.connection.commit()
+
+    def rollback(self):
+        self.connection.rollback()
+
+    def close(self):
+        self.connection.close()
 
 
 SKINS = {
@@ -128,6 +170,9 @@ ACHIEVEMENTS = {
 
 
 def get_db_connection():
+    if USE_SQLITE:
+        return SQLiteConnection(DATABASE_PATH)
+
     return psycopg2.connect(
         DATABASE_URL,
         cursor_factory=psycopg2.extras.RealDictCursor
@@ -138,7 +183,7 @@ def add_column_if_missing(cursor, connection, column_name, column_type):
     try:
         cursor.execute(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}")
         connection.commit()
-    except psycopg2.errors.DuplicateColumn:
+    except (psycopg2.errors.DuplicateColumn, sqlite3.OperationalError):
         connection.rollback()
 
 
@@ -215,7 +260,7 @@ def unlock_achievement(cursor, username, achievement_id):
 
         return True
 
-    except psycopg2.errors.UniqueViolation:
+    except (psycopg2.errors.UniqueViolation, sqlite3.IntegrityError):
         cursor.connection.rollback()
         return False
 
@@ -335,7 +380,7 @@ def register():
 
             return redirect("/")
 
-        except psycopg2.errors.UniqueViolation:
+        except (psycopg2.errors.UniqueViolation, sqlite3.IntegrityError):
             connection.rollback()
             cursor.close()
             connection.close()
@@ -450,6 +495,10 @@ def save_score():
     return jsonify({
         "status": "success",
         "earned_coins": earned_coins,
+        "total_coins": new_coins,
+        "best_score": new_best,
+        "best_level": new_best_level,
+        "is_new_best": score > user["best_score"],
         "unlocked": unlocked
     })
 
@@ -546,7 +595,7 @@ def achievements():
     )
 
 
-@app.route("/buy_skin/<skin_id>")
+@app.route("/buy_skin/<skin_id>", methods=["POST"])
 def buy_skin(skin_id):
     if "user" not in session:
         return redirect("/")
@@ -599,7 +648,7 @@ def buy_skin(skin_id):
     return redirect("/shop")
 
 
-@app.route("/select_skin/<skin_id>")
+@app.route("/select_skin/<skin_id>", methods=["POST"])
 def select_skin(skin_id):
     if "user" not in session:
         return redirect("/")
@@ -639,7 +688,7 @@ def select_skin(skin_id):
     return redirect("/shop")
 
 
-@app.route("/buy_trail/<trail_id>")
+@app.route("/buy_trail/<trail_id>", methods=["POST"])
 def buy_trail(trail_id):
     if "user" not in session:
         return redirect("/")
@@ -692,7 +741,7 @@ def buy_trail(trail_id):
     return redirect("/shop")
 
 
-@app.route("/select_trail/<trail_id>")
+@app.route("/select_trail/<trail_id>", methods=["POST"])
 def select_trail(trail_id):
     if "user" not in session:
         return redirect("/")
