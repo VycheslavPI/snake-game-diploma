@@ -399,6 +399,7 @@ function updateLevel() {
         createParticles(200, 200, getCurrentMap().obstacle);
         playTone("level");
         showLevelComplete(level);
+        restartMusic();
 
         if (level === 3 && !miniBossCompleted) {
             startMiniBoss();
@@ -419,6 +420,7 @@ function startMiniBoss() {
 
     activeEffectText.innerText = "⚠ MINI BOSS ⚠";
     playTone("boss");
+    restartMusic();
 
     spawnMiniBossLasers();
 
@@ -1357,7 +1359,7 @@ function playTone(type) {
     oscillator.stop(now + settings.duration);
 }
 
-function playMusicNote(frequency, duration, volume, delay = 0) {
+function playMusicNote(frequency, duration, volume, delay = 0, wave = "sawtooth", filterFrequency = 900) {
     if (!soundEnabled || gamePaused || !gameStarted) return;
 
     const audio = getAudioContext();
@@ -1366,11 +1368,11 @@ function playMusicNote(frequency, duration, volume, delay = 0) {
     const filter = audio.createBiquadFilter();
     const now = audio.currentTime + delay;
 
-    oscillator.type = "triangle";
+    oscillator.type = wave;
     oscillator.frequency.setValueAtTime(frequency, now);
 
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(1400, now);
+    filter.frequency.setValueAtTime(filterFrequency, now);
 
     gain.gain.setValueAtTime(0.001, now);
     gain.gain.exponentialRampToValueAtTime(volume, now + 0.03);
@@ -1383,33 +1385,93 @@ function playMusicNote(frequency, duration, volume, delay = 0) {
     oscillator.stop(now + duration + 0.04);
 }
 
+function playKick(delay = 0) {
+    if (!soundEnabled || gamePaused || !gameStarted) return;
+
+    const audio = getAudioContext();
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    const now = audio.currentTime + delay;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(120, now);
+    oscillator.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    oscillator.connect(gain);
+    gain.connect(audio.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.18);
+}
+
+function isDangerMusic() {
+    return miniBossMode || level >= 8 || (level >= 6 && ghostCharges === 0);
+}
+
+function getMusicInterval() {
+    if (miniBossMode) return 330;
+    if (level >= 8) return 390;
+    if (level >= 5) return 450;
+    return 540;
+}
+
 function playAmbientStep() {
-    const bass = [110, 110, 146.83, 98, 130.81, 98, 146.83, 164.81];
-    const arp = [440, 554.37, 659.25, 554.37, 493.88, 392, 493.88, 587.33];
+    if (!soundEnabled || gamePaused || !gameStarted) {
+        musicTimer = null;
+        return;
+    }
+
+    const danger = isDangerMusic();
+    const bass = danger
+        ? [82.41, 82.41, 98, 73.42, 82.41, 110, 98, 73.42]
+        : [65.41, 65.41, 82.41, 73.42, 65.41, 98, 82.41, 73.42];
+    const lead = danger
+        ? [329.63, 392, 440, 392, 293.66, 329.63, 392, 493.88]
+        : [246.94, 293.66, 329.63, 293.66, 220, 246.94, 293.66, 329.63];
     const index = musicStep % bass.length;
+    const interval = getMusicInterval();
+    const bassVolume = danger ? 0.04 : 0.032;
+    const leadVolume = danger ? 0.026 : 0.018;
 
-    playMusicNote(bass[index], 0.45, 0.025);
+    playMusicNote(bass[index], interval / 1000 * 0.82, bassVolume, 0, "sawtooth", danger ? 1050 : 760);
 
-    if (musicStep % 2 === 0) {
-        playMusicNote(arp[index], 0.16, 0.018, 0.08);
+    if (musicStep % 4 === 0 || danger) {
+        playKick(0);
+    }
+
+    if (musicStep % 2 === 0 || danger) {
+        playMusicNote(lead[index], 0.14, leadVolume, 0.07, "square", danger ? 1600 : 1150);
+    }
+
+    if (musicStep % 8 === 0) {
+        playMusicNote(bass[index] * 2, 0.9, 0.018, 0.02, "triangle", 650);
     }
 
     musicStep++;
+    musicTimer = setTimeout(playAmbientStep, interval);
 }
 
 function startMusic() {
     if (!soundEnabled || musicTimer || !gameStarted || gamePaused) return;
 
     musicStep = 0;
-    playAmbientStep();
-    musicTimer = setInterval(playAmbientStep, 480);
+    musicTimer = setTimeout(playAmbientStep, 0);
 }
 
 function stopMusic() {
     if (!musicTimer) return;
 
-    clearInterval(musicTimer);
+    clearTimeout(musicTimer);
     musicTimer = null;
+}
+
+function restartMusic() {
+    if (!soundEnabled || !gameStarted || gamePaused) return;
+
+    stopMusic();
+    startMusic();
 }
 
 function updateSettingsButtons() {
