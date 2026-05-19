@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль | NEON SNAKE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="background-grid"></div>
+
+<div class="shop-page">
+    <div class="glass-card shop-card">
+
+        <div class="shop-header">
+            <div>
+                <h1 class="title">ПРОФИЛЬ</h1>
+                <p class="welcome">{{ username }}</p>
+            </div>
+
+            <div class="coins-box">
+                {{ user.coins }} монет
+            </div>
+        </div>
+
+        <div class="shop-buttons">
+            <a href="/game" class="play-btn">Назад в игру</a>
+            <a href="/shop" class="play-btn">Магазин</a>
+            <a href="/achievements" class="play-btn">Достижения</a>
+            <a href="/logout" class="logout-btn">Выйти</a>
+        </div>
+
+        <div class="profile-layout">
+            <section class="profile-panel">
+                <h2>Статистика</h2>
+
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <span>Рекорд</span>
+                        <strong>{{ user.best_score }}</strong>
+                    </div>
+
+                    <div class="profile-stat">
+                        <span>Лучший уровень</span>
+                        <strong>{{ user.best_level }}</strong>
+                    </div>
+
+                    <div class="profile-stat">
+                        <span>Монеты</span>
+                        <strong>{{ user.coins }}</strong>
+                    </div>
+
+                    <div class="profile-stat">
+                        <span>Игр сыграно</span>
+                        <strong>{{ user.games_played }}</strong>
+                    </div>
+
+                    <div class="profile-stat">
+                        <span>Достижения</span>
+                        <strong>{{ achievements_count }}/{{ achievements_total }}</strong>
+                    </div>
+
+                    <div class="profile-stat">
+                        <span>Коллекция</span>
+                        <strong>{{ owned_skins_count }} / {{ owned_trails_count }}</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="profile-panel">
+                <h2>Текущий стиль</h2>
+
+                <div class="profile-preview">
+                    <div class="snake-preview large-preview">
+                        <div class="preview-head" data-color="{{ selected_skin.head }}"></div>
+                        <div class="preview-body" data-color1="{{ selected_skin.body1 }}" data-color2="{{ selected_skin.body2 }}"></div>
+                        <div class="preview-body" data-color1="{{ selected_skin.body1 }}" data-color2="{{ selected_skin.body2 }}"></div>
+                        <div class="preview-body" data-color1="{{ selected_skin.body1 }}" data-color2="{{ selected_skin.body2 }}"></div>
+                    </div>
+
+                    <div>
+                        <div class="profile-label">Скин</div>
+                        <strong>{{ selected_skin.name }}</strong>
+                    </div>
+                </div>
+
+                <div class="profile-preview">
+                    <div class="trail-preview">
+                        <div class="trail-dot" data-color1="{{ selected_trail.color1 }}" data-color2="{{ selected_trail.color2 }}"></div>
+                        <div class="trail-line" data-color1="{{ selected_trail.color1 }}" data-color2="{{ selected_trail.color2 }}"></div>
+                        <div class="trail-dot small" data-color1="{{ selected_trail.color1 }}" data-color2="{{ selected_trail.color2 }}"></div>
+                    </div>
+
+                    <div>
+                        <div class="profile-label">След</div>
+                        <strong>{{ selected_trail.name }}</strong>
+                        <p>{{ selected_trail.description }}</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.querySelectorAll(".preview-head").forEach(head => {
+    head.style.background = head.dataset.color;
+});
+
+document.querySelectorAll(".preview-body").forEach(body => {
+    body.style.background = `linear-gradient(45deg, ${body.dataset.color1}, ${body.dataset.color2})`;
+});
+
+document.querySelectorAll(".trail-dot").forEach(dot => {
+    dot.style.background = `linear-gradient(45deg, ${dot.dataset.color1}, ${dot.dataset.color2})`;
+    dot.style.boxShadow = `0 0 18px ${dot.dataset.color1}`;
+});
+
+document.querySelectorAll(".trail-line").forEach(line => {
+    line.style.background = `linear-gradient(90deg, ${line.dataset.color1}, ${line.dataset.color2})`;
+    line.style.boxShadow = `0 0 18px ${line.dataset.color1}`;
+});
+</script>
+
+</body>
+</html>

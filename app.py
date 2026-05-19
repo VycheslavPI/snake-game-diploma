@@ -605,6 +605,66 @@ def achievements():
     )
 
 
+@app.route("/profile")
+def profile():
+    if "user" not in session:
+        return redirect("/")
+
+    username = session["user"]
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT
+            username,
+            best_score,
+            best_level,
+            coins,
+            games_played,
+            selected_skin,
+            selected_trail,
+            owned_skins,
+            owned_trails
+        FROM users
+        WHERE username = %s
+    """, (username,))
+
+    user = cursor.fetchone()
+
+    cursor.execute("""
+        SELECT COUNT(*) AS unlocked_count
+        FROM user_achievements
+        WHERE username = %s
+    """, (username,))
+
+    achievements_count = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    if not user:
+        session.pop("user", None)
+        return redirect("/")
+
+    selected_skin = SKINS.get(user["selected_skin"], SKINS["neon"])
+    selected_trail = TRAILS.get(user["selected_trail"], TRAILS["none"])
+    owned_skins = user["owned_skins"].split(",") if user["owned_skins"] else []
+    owned_trails = user["owned_trails"].split(",") if user["owned_trails"] else []
+
+    return render_template(
+        "profile.html",
+        username=username,
+        user=user,
+        selected_skin=selected_skin,
+        selected_trail=selected_trail,
+        owned_skins_count=len(owned_skins),
+        owned_trails_count=len(owned_trails),
+        achievements_count=achievements_count["unlocked_count"] if achievements_count else 0,
+        achievements_total=len(ACHIEVEMENTS)
+    )
+
+
 @app.route("/buy_skin/<skin_id>", methods=["POST"])
 def buy_skin(skin_id):
     if "user" not in session:
