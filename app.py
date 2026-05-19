@@ -244,25 +244,29 @@ init_database()
 
 
 def unlock_achievement(cursor, username, achievement_id):
-    try:
-        cursor.execute("""
-            INSERT INTO user_achievements (username, achievement_id)
-            VALUES (%s, %s)
-        """, (username, achievement_id))
+    cursor.execute("""
+        SELECT 1
+        FROM user_achievements
+        WHERE username = %s AND achievement_id = %s
+    """, (username, achievement_id))
 
-        reward = ACHIEVEMENTS[achievement_id]["reward"]
-
-        cursor.execute("""
-            UPDATE users
-            SET coins = coins + %s
-            WHERE username = %s
-        """, (reward, username))
-
-        return True
-
-    except (psycopg2.errors.UniqueViolation, sqlite3.IntegrityError):
-        cursor.connection.rollback()
+    if cursor.fetchone():
         return False
+
+    cursor.execute("""
+        INSERT INTO user_achievements (username, achievement_id)
+        VALUES (%s, %s)
+    """, (username, achievement_id))
+
+    reward = ACHIEVEMENTS[achievement_id]["reward"]
+
+    cursor.execute("""
+        UPDATE users
+        SET coins = coins + %s
+        WHERE username = %s
+    """, (reward, username))
+
+    return True
 
 
 def check_achievements(cursor, username, score, level):
@@ -487,6 +491,12 @@ def save_score():
 
     unlocked = check_achievements(cursor, username, score, level)
 
+    cursor.execute(
+        "SELECT coins FROM users WHERE username = %s",
+        (username,)
+    )
+    updated_user = cursor.fetchone()
+
     connection.commit()
 
     cursor.close()
@@ -495,7 +505,7 @@ def save_score():
     return jsonify({
         "status": "success",
         "earned_coins": earned_coins,
-        "total_coins": new_coins,
+        "total_coins": updated_user["coins"] if updated_user else new_coins,
         "best_score": new_best,
         "best_level": new_best_level,
         "is_new_best": score > user["best_score"],
