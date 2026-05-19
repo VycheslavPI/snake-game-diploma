@@ -884,117 +884,152 @@ function drawTrail() {
 function drawSnake() {
     const smoothSnake = getInterpolatedSnake();
 
-    if (smoothSnake.length > 1) {
-        ctx.save();
+    if (!smoothSnake.length) return;
 
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.strokeStyle =
-            ghostCharges > 0
-                ? "rgba(168,85,247,0.35)"
-                : "rgba(255,255,255,0.12)";
-        ctx.lineWidth = 16;
+    const points = smoothSnake.map(part => ({
+        x: part.x * gridSize + gridSize / 2,
+        y: part.y * gridSize + gridSize / 2
+    }));
 
-        ctx.beginPath();
-        ctx.moveTo(
-            smoothSnake[0].x * gridSize + gridSize / 2,
-            smoothSnake[0].y * gridSize + gridSize / 2
-        );
-
-        for (let i = 1; i < smoothSnake.length; i++) {
-            ctx.lineTo(
-                smoothSnake[i].x * gridSize + gridSize / 2,
-                smoothSnake[i].y * gridSize + gridSize / 2
-            );
-        }
-
-        ctx.stroke();
-        ctx.restore();
+    if (points.length > 1) {
+        drawSnakeRibbon(points);
+        drawSnakeTail(points);
     }
 
-    smoothSnake.forEach((part, index) => {
-        const offset = index === 0 ? 1 : 2;
-        const size = index === 0 ? gridSize - 2 : gridSize - 4;
-
-        if (index === 0) {
-            ctx.fillStyle = skinHead;
-            ctx.shadowColor = skinHead;
-            ctx.shadowBlur = ghostCharges > 0 ? 30 : 22;
-            ctx.globalAlpha = ghostCharges > 0 ? 0.75 : 1;
-        } else {
-            const gradient = ctx.createLinearGradient(
-                part.x * gridSize,
-                part.y * gridSize,
-                part.x * gridSize + gridSize,
-                part.y * gridSize + gridSize
-            );
-
-            gradient.addColorStop(0, skinBody1);
-            gradient.addColorStop(1, skinBody2);
-
-            ctx.fillStyle = gradient;
-            ctx.shadowColor = ghostCharges > 0 ? "#a855f7" : skinBody1;
-            ctx.shadowBlur = ghostCharges > 0 ? 24 : 14;
-            ctx.globalAlpha = ghostCharges > 0 ? 0.65 : 1;
-        }
-
-        drawRoundedRect(
-            part.x * gridSize + offset,
-            part.y * gridSize + offset,
-            size,
-            size,
-            8
-        );
-
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
-
-        ctx.strokeStyle =
-            ghostCharges > 0
-                ? "rgba(168,85,247,0.9)"
-                : "rgba(255,255,255,0.6)";
-        ctx.lineWidth = 1;
-
-        ctx.strokeRect(
-            part.x * gridSize + 3,
-            part.y * gridSize + 3,
-            gridSize - 6,
-            gridSize - 6
-        );
-
-        if (index === 0) {
-            drawEyes(part);
-        }
-    });
+    drawSnakeHead(points[0]);
 }
 
-function drawEyes(part) {
-    ctx.fillStyle = "#111";
+function createSnakePath(points) {
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+
+    if (points.length === 2) {
+        ctx.lineTo(points[1].x, points[1].y);
+        return;
+    }
+
+    for (let i = 1; i < points.length - 1; i++) {
+        const midX = (points[i].x + points[i + 1].x) / 2;
+        const midY = (points[i].y + points[i + 1].y) / 2;
+
+        ctx.quadraticCurveTo(points[i].x, points[i].y, midX, midY);
+    }
+
+    const last = points[points.length - 1];
+    ctx.lineTo(last.x, last.y);
+}
+
+function drawSnakeRibbon(points) {
+    const gradient = ctx.createLinearGradient(
+        points[points.length - 1].x,
+        points[points.length - 1].y,
+        points[0].x,
+        points[0].y
+    );
+
+    gradient.addColorStop(0, skinBody2);
+    gradient.addColorStop(0.55, skinBody1);
+    gradient.addColorStop(1, skinHead);
+
+    ctx.save();
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    createSnakePath(points);
+    ctx.strokeStyle = ghostCharges > 0 ? "rgba(168,85,247,0.38)" : "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 22;
+    ctx.shadowColor = ghostCharges > 0 ? "#a855f7" : skinBody1;
+    ctx.shadowBlur = ghostCharges > 0 ? 34 : 24;
+    ctx.stroke();
+
+    createSnakePath(points);
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 15;
+    ctx.shadowBlur = 14;
+    ctx.stroke();
+
+    createSnakePath(points);
+    ctx.strokeStyle = ghostCharges > 0 ? "rgba(255,255,255,0.42)" : "rgba(255,255,255,0.28)";
+    ctx.lineWidth = 4;
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.75;
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function drawSnakeTail(points) {
+    const tail = points[points.length - 1];
+
+    ctx.save();
+    ctx.fillStyle = skinBody2;
+    ctx.shadowColor = skinBody2;
+    ctx.shadowBlur = 16;
+    ctx.globalAlpha = ghostCharges > 0 ? 0.55 : 0.85;
+    ctx.beginPath();
+    ctx.arc(tail.x, tail.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawSnakeHead(head) {
+    ctx.save();
+    ctx.fillStyle = skinHead;
+    ctx.shadowColor = ghostCharges > 0 ? "#a855f7" : skinHead;
+    ctx.shadowBlur = ghostCharges > 0 ? 34 : 24;
+    ctx.globalAlpha = ghostCharges > 0 ? 0.82 : 1;
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, 10.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+
+    drawEyes(head);
+}
+
+function drawEyes(head) {
+    ctx.save();
+    ctx.fillStyle = "#07111c";
 
     let eye1 = {x: 7, y: 7};
     let eye2 = {x: 13, y: 7};
 
     if (dx === 1) {
-        eye1 = {x: 13, y: 6};
-        eye2 = {x: 13, y: 14};
+        eye1 = {x: 5, y: -4};
+        eye2 = {x: 5, y: 4};
     } else if (dx === -1) {
-        eye1 = {x: 7, y: 6};
-        eye2 = {x: 7, y: 14};
+        eye1 = {x: -5, y: -4};
+        eye2 = {x: -5, y: 4};
     } else if (dy === 1) {
-        eye1 = {x: 7, y: 14};
-        eye2 = {x: 13, y: 14};
+        eye1 = {x: -4, y: 5};
+        eye2 = {x: 4, y: 5};
     } else if (dy === -1) {
-        eye1 = {x: 7, y: 6};
-        eye2 = {x: 13, y: 6};
+        eye1 = {x: -4, y: -5};
+        eye2 = {x: 4, y: -5};
     }
 
     ctx.beginPath();
-    ctx.arc(part.x * gridSize + eye1.x, part.y * gridSize + eye1.y, 2, 0, Math.PI * 2);
+    ctx.arc(head.x + eye1.x, head.y + eye1.y, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(part.x * gridSize + eye2.x, part.y * gridSize + eye2.y, 2, 0, Math.PI * 2);
+    ctx.arc(head.x + eye2.x, head.y + eye2.y, 2.2, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.beginPath();
+    ctx.arc(head.x + eye1.x + 0.7, head.y + eye1.y - 0.7, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(head.x + eye2.x + 0.7, head.y + eye2.y - 0.7, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
 }
 
 function createParticles(x, y, color) {
