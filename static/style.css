@@ -704,8 +704,119 @@ input:focus{
     height:34px;
 }
 
+.feedback-layout{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(320px, 0.9fr);
+    gap:24px;
+}
+
+.feedback-panel{
+    min-height:100%;
+}
+
+.feedback-form{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.feedback-form label{
+    color:#9fdcff;
+    font-weight:bold;
+}
+
+.feedback-form select,
+.feedback-form textarea{
+    width:100%;
+    border:1px solid rgba(0,255,180,0.24);
+    background:#071633;
+    color:#e8fbff;
+    border-radius:12px;
+    padding:13px 14px;
+    font:inherit;
+    outline:none;
+    box-shadow:inset 0 0 12px rgba(0,0,0,0.24);
+}
+
+.feedback-form textarea{
+    min-height:190px;
+    resize:vertical;
+    line-height:1.5;
+}
+
+.feedback-form select:focus,
+.feedback-form textarea:focus{
+    border-color:#56ffb1;
+    box-shadow:0 0 0 3px rgba(86,255,177,0.12), inset 0 0 12px rgba(0,0,0,0.24);
+}
+
+.feedback-alert,
+.empty-feedback{
+    margin-bottom:16px;
+    border-radius:12px;
+    padding:14px 16px;
+    background:#13233f;
+    color:#dffcff;
+}
+
+.feedback-alert.success{
+    border:1px solid rgba(86,255,177,0.35);
+    color:#8dffbc;
+}
+
+.feedback-alert.error{
+    border:1px solid rgba(255,80,110,0.45);
+    color:#ff9cad;
+}
+
+.feedback-list{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.feedback-item{
+    background:#13233f;
+    border:1px solid rgba(0,255,150,0.14);
+    border-radius:14px;
+    padding:16px;
+}
+
+.feedback-meta{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:10px;
+    color:#9cb8d6;
+    text-transform:uppercase;
+    font-size:12px;
+    letter-spacing:0.08em;
+}
+
+.feedback-meta strong{
+    color:#56ffb1;
+}
+
+.feedback-item p{
+    color:#e8fbff;
+    line-height:1.45;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+}
+
+.feedback-item time{
+    display:block;
+    margin-top:12px;
+    color:#7895b4;
+    font-size:13px;
+}
+
 @media(max-width:900px){
     .profile-layout{
+        grid-template-columns:1fr;
+    }
+
+    .feedback-layout{
         grid-template-columns:1fr;
     }
 

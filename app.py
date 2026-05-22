@@ -236,6 +236,19 @@ def init_database():
     """)
 
     connection.commit()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS feedback (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            category TEXT NOT NULL,
+            message TEXT NOT NULL,
+            status TEXT DEFAULT 'new',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    connection.commit()
     cursor.close()
     connection.close()
 
@@ -662,6 +675,68 @@ def profile():
         owned_trails_count=len(owned_trails),
         achievements_count=achievements_count["unlocked_count"] if achievements_count else 0,
         achievements_total=len(ACHIEVEMENTS)
+    )
+
+
+@app.route("/feedback", methods=["GET", "POST"])
+def feedback():
+    if "user" not in session:
+        return redirect("/")
+
+    username = session["user"]
+    error = None
+    success = request.args.get("sent") == "1"
+
+    if request.method == "POST":
+        category = request.form.get("category", "idea").strip()
+        message = request.form.get("message", "").strip()
+
+        allowed_categories = {"idea", "bug", "balance", "design", "other"}
+
+        if category not in allowed_categories:
+            category = "other"
+
+        if len(message) < 5:
+            error = "Сообщение слишком короткое."
+        elif len(message) > 1200:
+            error = "Сообщение слишком длинное. Максимум 1200 символов."
+        else:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+
+            cursor.execute("""
+                INSERT INTO feedback (username, category, message)
+                VALUES (%s, %s, %s)
+            """, (username, category, message))
+
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+            return redirect("/feedback?sent=1")
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT category, message, status, created_at
+        FROM feedback
+        WHERE username = %s
+        ORDER BY created_at DESC
+        LIMIT 8
+    """, (username,))
+
+    feedback_items = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    return render_template(
+        "feedback.html",
+        username=username,
+        feedback_items=feedback_items,
+        success=success,
+        error=error
     )
 
 

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обратная связь | NEON SNAKE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="background-grid"></div>
+
+<div class="shop-page">
+    <div class="glass-card shop-card">
+
+        <div class="shop-header">
+            <div>
+                <h1 class="title">ОБРАТНАЯ СВЯЗЬ</h1>
+                <p class="welcome">Игрок: {{ username }}</p>
+            </div>
+        </div>
+
+        <div class="shop-buttons">
+            <a href="/game" class="play-btn">Назад в игру</a>
+            <a href="/profile" class="play-btn">Профиль</a>
+            <a href="/shop" class="play-btn">Магазин</a>
+            <a href="/achievements" class="play-btn">Достижения</a>
+            <a href="/logout" class="logout-btn">Выйти</a>
+        </div>
+
+        <div class="feedback-layout">
+            <section class="profile-panel feedback-panel">
+                <h2>Оставить пожелание</h2>
+
+                {% if success %}
+                    <div class="feedback-alert success">Сообщение отправлено. Спасибо за идею!</div>
+                {% endif %}
+
+                {% if error %}
+                    <div class="feedback-alert error">{{ error }}</div>
+                {% endif %}
+
+                <form method="POST" action="/feedback" class="feedback-form">
+                    <label for="category">Тип сообщения</label>
+                    <select id="category" name="category">
+                        <option value="idea">Идея</option>
+                        <option value="bug">Ошибка</option>
+                        <option value="balance">Баланс уровней</option>
+                        <option value="design">Дизайн</option>
+                        <option value="other">Другое</option>
+                    </select>
+
+                    <label for="message">Сообщение</label>
+                    <textarea
+                        id="message"
+                        name="message"
+                        rows="8"
+                        maxlength="1200"
+                        required
+                        placeholder="Напишите, что можно улучшить, что не понравилось или какую функцию стоит добавить."
+                    ></textarea>
+
+                    <button type="submit" class="play-btn">Отправить</button>
+                </form>
+            </section>
+
+            <section class="profile-panel feedback-panel">
+                <h2>Мои сообщения</h2>
+
+                {% if feedback_items %}
+                    <div class="feedback-list">
+                        {% for item in feedback_items %}
+                            <article class="feedback-item">
+                                <div class="feedback-meta">
+                                    <span>{{ item.category }}</span>
+                                    <strong>{{ item.status }}</strong>
+                                </div>
+                                <p>{{ item.message }}</p>
+                                <time>{{ item.created_at }}</time>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-feedback">Пока нет отправленных сообщений.</div>
+                {% endif %}
+            </section>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
