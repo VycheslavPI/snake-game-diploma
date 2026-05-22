@@ -927,50 +927,12 @@ function drawSnake() {
         y: part.y * gridSize + gridSize / 2
     }));
 
-    drawSnakeShadow(points);
-
     if (points.length > 1) {
         drawSnakeRibbon(points);
         drawSnakeTail(points);
     }
 
-    drawSnakeHead(points[0], points[1] || null);
-}
-
-function hexToRgb(hex) {
-    const value = hex.replace("#", "");
-    const full = value.length === 3
-        ? value.split("").map(char => char + char).join("")
-        : value;
-
-    return {
-        r: parseInt(full.slice(0, 2), 16),
-        g: parseInt(full.slice(2, 4), 16),
-        b: parseInt(full.slice(4, 6), 16)
-    };
-}
-
-function colorWithAlpha(hex, alpha) {
-    const rgb = hexToRgb(hex);
-    return "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + "," + alpha + ")";
-}
-
-function mixWithWhite(hex, amount) {
-    const rgb = hexToRgb(hex);
-    const mix = value => Math.round(value + (255 - value) * amount);
-    return "rgb(" + mix(rgb.r) + "," + mix(rgb.g) + "," + mix(rgb.b) + ")";
-}
-
-function getHeadAngle(head, neck) {
-    if (neck) {
-        return Math.atan2(head.y - neck.y, head.x - neck.x);
-    }
-
-    if (dx !== 0 || dy !== 0) {
-        return Math.atan2(dy, dx);
-    }
-
-    return 0;
+    drawSnakeHead(points[0]);
 }
 
 function createSnakePath(points) {
@@ -993,23 +955,6 @@ function createSnakePath(points) {
     ctx.lineTo(last.x, last.y);
 }
 
-function drawSnakeShadow(points) {
-    if (!points.length) return;
-
-    ctx.save();
-    ctx.translate(0, 5);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.globalAlpha = ghostCharges > 0 ? 0.34 : 0.28;
-    ctx.shadowColor = "#000000";
-    ctx.shadowBlur = 14;
-    createSnakePath(points);
-    ctx.strokeStyle = "#020713";
-    ctx.lineWidth = 20;
-    ctx.stroke();
-    ctx.restore();
-}
-
 function drawSnakeRibbon(points) {
     const gradient = ctx.createLinearGradient(
         points[points.length - 1].x,
@@ -1028,39 +973,23 @@ function drawSnakeRibbon(points) {
     ctx.lineJoin = "round";
 
     createSnakePath(points);
-    ctx.strokeStyle = ghostCharges > 0 ? "rgba(168,85,247,0.42)" : colorWithAlpha(skinBody1, 0.22);
-    ctx.lineWidth = 24;
+    ctx.strokeStyle = ghostCharges > 0 ? "rgba(168,85,247,0.38)" : "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 22;
     ctx.shadowColor = ghostCharges > 0 ? "#a855f7" : skinBody1;
     ctx.shadowBlur = ghostCharges > 0 ? 34 : 24;
     ctx.stroke();
 
     createSnakePath(points);
-    ctx.strokeStyle = "#07111c";
-    ctx.lineWidth = 18;
-    ctx.shadowBlur = 10;
-    ctx.globalAlpha = ghostCharges > 0 ? 0.6 : 0.78;
-    ctx.stroke();
-
-    createSnakePath(points);
-    ctx.globalAlpha = ghostCharges > 0 ? 0.86 : 1;
     ctx.strokeStyle = gradient;
-    ctx.lineWidth = 16;
-    ctx.shadowBlur = 12;
+    ctx.lineWidth = 15;
+    ctx.shadowBlur = 14;
     ctx.stroke();
 
     createSnakePath(points);
-    ctx.strokeStyle = ghostCharges > 0 ? "rgba(255,255,255,0.46)" : "rgba(255,255,255,0.34)";
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = ghostCharges > 0 ? "rgba(255,255,255,0.42)" : "rgba(255,255,255,0.28)";
+    ctx.lineWidth = 4;
     ctx.shadowBlur = 0;
-    ctx.globalAlpha = 0.78;
-    ctx.stroke();
-
-    createSnakePath(points);
-    ctx.strokeStyle = colorWithAlpha(skinBody2, ghostCharges > 0 ? 0.28 : 0.38);
-    ctx.lineWidth = 6;
-    ctx.globalAlpha = 0.65;
-    ctx.setLineDash([1, 22]);
-    ctx.lineDashOffset = -performance.now() / 70;
+    ctx.globalAlpha = 0.75;
     ctx.stroke();
 
     ctx.restore();
@@ -1068,96 +997,72 @@ function drawSnakeRibbon(points) {
 
 function drawSnakeTail(points) {
     const tail = points[points.length - 1];
-    const beforeTail = points[points.length - 2] || tail;
-    const angle = Math.atan2(tail.y - beforeTail.y, tail.x - beforeTail.x);
 
     ctx.save();
-    ctx.translate(tail.x, tail.y);
-    ctx.rotate(angle);
-    ctx.fillStyle = colorWithAlpha(skinBody2, ghostCharges > 0 ? 0.5 : 0.9);
-    ctx.shadowColor = ghostCharges > 0 ? "#a855f7" : skinBody2;
-    ctx.shadowBlur = ghostCharges > 0 ? 20 : 14;
+    ctx.fillStyle = skinBody2;
+    ctx.shadowColor = skinBody2;
+    ctx.shadowBlur = 16;
+    ctx.globalAlpha = ghostCharges > 0 ? 0.55 : 0.85;
     ctx.beginPath();
-    ctx.moveTo(7, 0);
-    ctx.quadraticCurveTo(-2, -6, -10, 0);
-    ctx.quadraticCurveTo(-2, 6, 7, 0);
+    ctx.arc(tail.x, tail.y, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 }
 
-function drawSnakeHead(head, neck) {
-    const angle = getHeadAngle(head, neck);
-
+function drawSnakeHead(head) {
     ctx.save();
-    ctx.translate(head.x, head.y);
-    ctx.rotate(angle);
+    ctx.fillStyle = skinHead;
     ctx.shadowColor = ghostCharges > 0 ? "#a855f7" : skinHead;
     ctx.shadowBlur = ghostCharges > 0 ? 34 : 24;
     ctx.globalAlpha = ghostCharges > 0 ? 0.82 : 1;
-
-    const headGradient = ctx.createRadialGradient(-3, -5, 2, 0, 0, 14);
-    headGradient.addColorStop(0, mixWithWhite(skinHead, 0.62));
-    headGradient.addColorStop(0.38, skinHead);
-    headGradient.addColorStop(1, skinBody2);
-
-    ctx.fillStyle = headGradient;
     ctx.beginPath();
-    ctx.moveTo(12, 0);
-    ctx.bezierCurveTo(9, -10, -8, -12, -12, -3);
-    ctx.bezierCurveTo(-14, 3, -8, 12, 9, 10);
-    ctx.bezierCurveTo(14, 7, 15, -5, 12, 0);
+    ctx.arc(head.x, head.y, 10.5, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
-
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = ghostCharges > 0 ? 0.54 : 0.72;
-    ctx.strokeStyle = "rgba(255,255,255,0.6)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-4, -6);
-    ctx.quadraticCurveTo(3, -10, 9, -4);
-    ctx.stroke();
-
     ctx.restore();
 
-    drawEyes(head, angle);
+    drawEyes(head);
 }
 
-function drawEyes(head, angle) {
+function drawEyes(head) {
     ctx.save();
-    ctx.translate(head.x, head.y);
-    ctx.rotate(angle);
     ctx.fillStyle = "#07111c";
 
-    const eye1 = {x: 4.5, y: -4.4};
-    const eye2 = {x: 4.5, y: 4.4};
+    let eye1 = {x: 7, y: 7};
+    let eye2 = {x: 13, y: 7};
+
+    if (dx === 1) {
+        eye1 = {x: 5, y: -4};
+        eye2 = {x: 5, y: 4};
+    } else if (dx === -1) {
+        eye1 = {x: -5, y: -4};
+        eye2 = {x: -5, y: 4};
+    } else if (dy === 1) {
+        eye1 = {x: -4, y: 5};
+        eye2 = {x: 4, y: 5};
+    } else if (dy === -1) {
+        eye1 = {x: -4, y: -5};
+        eye2 = {x: 4, y: -5};
+    }
 
     ctx.beginPath();
-    ctx.ellipse(eye1.x, eye1.y, 2.6, 2, 0, 0, Math.PI * 2);
+    ctx.arc(head.x + eye1.x, head.y + eye1.y, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.beginPath();
-    ctx.ellipse(eye2.x, eye2.y, 2.6, 2, 0, 0, Math.PI * 2);
+    ctx.arc(head.x + eye2.x, head.y + eye2.y, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.beginPath();
-    ctx.arc(eye1.x + 0.8, eye1.y - 0.6, 0.7, 0, Math.PI * 2);
+    ctx.arc(head.x + eye1.x + 0.7, head.y + eye1.y - 0.7, 0.7, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(eye2.x + 0.8, eye2.y - 0.6, 0.7, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "rgba(255,255,255,0.58)";
-    ctx.beginPath();
-    ctx.moveTo(11, -1.4);
-    ctx.lineTo(14, 0);
-    ctx.lineTo(11, 1.4);
-    ctx.closePath();
+    ctx.arc(head.x + eye2.x + 0.7, head.y + eye2.y - 0.7, 0.7, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
