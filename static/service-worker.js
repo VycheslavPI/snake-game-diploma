@@ -1,8 +1,8 @@
-const CACHE_NAME = "neon-snake-v2";
+const CACHE_NAME = "neon-snake-v4";
 const CORE_ASSETS = [
     "/static/style.css",
     "/static/game.js",
-    "/static/rhythm.js",
+    "/static/rhythm.js?v=4",
     "/static/pwa.js",
     "/static/icon.svg",
     "/static/maskable-icon.svg",

@@ -13,8 +13,10 @@ const rhythmBest = document.getElementById("rhythmBest");
 
 const laneCount = 5;
 const hitLineY = rhythmCanvas.height - 92;
-const noteSpeed = 0.27;
-const catchWindow = 30;
+const noteSpeed = 0.2;
+const catchWindow = 44;
+const minBeatGap = 430;
+const maxActiveNotes = 5;
 const laneColors = ["#00e5ff", "#37ffb3", "#b7ff00", "#facc15", "#ff2f68"];
 
 let audioContext = null;
@@ -248,7 +250,11 @@ function analyzeBeat() {
     const now = performance.now();
     const sensitivity = parseFloat(sensitivityInput.value);
 
-    if (bass > Math.max(38, baseline * sensitivity) && now - lastBeatTime > 210) {
+    if (
+        bass > Math.max(46, baseline * sensitivity) &&
+        now - lastBeatTime > minBeatGap &&
+        notes.length < maxActiveNotes
+    ) {
         lastBeatTime = now;
         spawnFallingNote(bass);
     }
@@ -261,7 +267,7 @@ function spawnFallingNote(power) {
     notes.push({
         lane,
         y: -28,
-        speed: noteSpeed + Math.min(0.09, power / 1800),
+        speed: noteSpeed + Math.min(0.05, power / 2600),
         color,
         caught: false
     });
@@ -315,6 +321,14 @@ function missNote(note) {
 
 function movePlayer(direction) {
     playerLaneTarget = Math.max(0, Math.min(laneCount - 1, playerLaneTarget + direction));
+}
+
+function setPlayerLane(lane, instant = false) {
+    playerLaneTarget = Math.max(0, Math.min(laneCount - 1, lane));
+
+    if (instant) {
+        playerLane = playerLaneTarget;
+    }
 }
 
 function rhythmLoop() {
@@ -445,7 +459,17 @@ rhythmCanvas.addEventListener("pointerdown", event => {
     const rect = rhythmCanvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const lane = Math.floor((x / rect.width) * laneCount);
-    playerLaneTarget = Math.max(0, Math.min(laneCount - 1, lane));
+    setPlayerLane(lane, true);
+    rhythmCanvas.setPointerCapture(event.pointerId);
+});
+
+rhythmCanvas.addEventListener("pointermove", event => {
+    if (!isPlaying && event.buttons !== 1) return;
+
+    const rect = rhythmCanvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const lane = Math.floor((x / rect.width) * laneCount);
+    setPlayerLane(lane, true);
 });
 
 drawRhythmScene();
