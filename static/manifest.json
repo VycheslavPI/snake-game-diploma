@@ -1,7 +1,7 @@
 {
   "name": "NEON SNAKE",
   "short_name": "Neon Snake",
-  "description": "Cyber neon snake game with levels, skins, achievements and player feedback.",
+  "description": "Cyber neon snake game with levels, skins, achievements, player feedback and rhythm mode.",
   "start_url": "/game",
   "scope": "/",
   "display": "standalone",
@@ -27,6 +27,18 @@
       "name": "Играть",
       "short_name": "Играть",
       "url": "/game",
+      "icons": [
+        {
+          "src": "/static/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Rhythm Snake",
+      "short_name": "Rhythm",
+      "url": "/rhythm",
       "icons": [
         {
           "src": "/static/icon.svg",

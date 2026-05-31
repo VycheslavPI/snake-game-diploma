@@ -34,6 +34,7 @@
 
         <div class="shop-buttons">
             <a href="/game" class="play-btn">Назад в игру</a>
+            <a href="/rhythm" class="play-btn">Rhythm Snake</a>
             <a href="/shop" class="play-btn">Магазин</a>
             <a href="/achievements" class="play-btn">Достижения</a>
             <a href="/feedback" class="play-btn">Обратная связь</a>
@@ -73,6 +74,15 @@
                     <div class="profile-stat">
                         <span>Коллекция</span>
                         <strong>{{ owned_skins_count }} / {{ owned_trails_count }}</strong>
+                    </div>
+                    <div class="profile-stat">
+                        <span>Rhythm рекорд</span>
+                        <strong>{{ user.rhythm_best_score }}</strong>
+                    </div>
+
+                    <div class="profile-stat">
+                        <span>Rhythm игр</span>
+                        <strong>{{ user.rhythm_games_played }}</strong>
                     </div>
                 </div>
             </section>

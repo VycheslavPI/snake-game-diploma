@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10283f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Neon Snake">
+    <title>Rhythm Snake | NEON SNAKE</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='maskable-icon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='pwa.js') }}"></script>
+</head>
+<body>
+
+<div class="background-grid"></div>
+
+<div class="main-wrapper rhythm-wrapper">
+    <div class="left-panel">
+        <div class="glass-card rhythm-card">
+            <h1 class="title">RHYTHM SNAKE</h1>
+            <div class="welcome">Игрок: {{ username }}</div>
+            <a href="/logout" class="logout-btn">Выйти</a>
+
+            <div class="rhythm-toolbar">
+                <label class="upload-btn">
+                    <input id="musicInput" type="file" accept="audio/*">
+                    Выбрать музыку
+                </label>
+                <button id="rhythmStartBtn" class="play-btn" type="button" disabled>Старт</button>
+                <button id="rhythmStopBtn" class="play-btn" type="button" disabled>Стоп</button>
+                <a href="/game" class="play-btn">Обычная змейка</a>
+                <a href="/profile" class="play-btn">Профиль</a>
+            </div>
+
+            <div class="rhythm-stats">
+                <div class="stat-box"><span>Счёт</span><strong id="rhythmScore">0</strong></div>
+                <div class="stat-box"><span>Комбо</span><strong id="rhythmCombo">0</strong></div>
+                <div class="stat-box"><span>Точность</span><strong id="rhythmAccuracy">0%</strong></div>
+                <div class="stat-box"><span>Рекорд</span><strong id="rhythmBest">{{ rhythm_best_score }}</strong></div>
+            </div>
+
+            <div class="rhythm-stage">
+                <canvas id="rhythmCanvas" width="520" height="520"></canvas>
+                <div class="rhythm-hint" id="rhythmHint">
+                    Загрузите трек и двигайтесь стрелками/WASD в момент неонового импульса.
+                </div>
+            </div>
+
+            <div class="rhythm-settings">
+                <label>
+                    Чувствительность
+                    <input id="sensitivityInput" type="range" min="0.9" max="1.7" step="0.05" value="1.22">
+                </label>
+                <span id="trackName">Трек не выбран</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="leaderboard">
+            <h2>RHYTHM TOP</h2>
+            <table>
+                <tr>
+                    <th>#</th>
+                    <th>Игрок</th>
+                    <th>Рекорд</th>
+                </tr>
+                {% for player in leaders %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ player.username }}</td>
+                    <td>{{ player.rhythm_best_score }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            <p class="rhythm-note">Сыграно ритм-игр: {{ rhythm_games_played }}</p>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='rhythm.js') }}"></script>
+
+</body>
+</html>

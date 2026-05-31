@@ -214,7 +214,9 @@ def init_database():
             selected_trail TEXT DEFAULT 'none',
             owned_trails TEXT DEFAULT 'none',
             games_played INTEGER DEFAULT 0,
-            best_level INTEGER DEFAULT 1
+            best_level INTEGER DEFAULT 1,
+            rhythm_best_score INTEGER DEFAULT 0,
+            rhythm_games_played INTEGER DEFAULT 0
         )
     """)
 
@@ -229,7 +231,9 @@ def init_database():
         "selected_trail": "TEXT DEFAULT 'none'",
         "owned_trails": "TEXT DEFAULT 'none'",
         "games_played": "INTEGER DEFAULT 0",
-        "best_level": "INTEGER DEFAULT 1"
+        "best_level": "INTEGER DEFAULT 1",
+        "rhythm_best_score": "INTEGER DEFAULT 0",
+        "rhythm_games_played": "INTEGER DEFAULT 0"
     }
 
     for column_name, column_type in extra_columns.items():
@@ -469,6 +473,49 @@ def game():
     )
 
 
+@app.route("/rhythm")
+def rhythm():
+    if "user" not in session:
+        return redirect("/")
+
+    username = session["user"]
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT rhythm_best_score, rhythm_games_played
+        FROM users
+        WHERE username = %s
+    """, (username,))
+
+    user = cursor.fetchone()
+
+    cursor.execute("""
+        SELECT username, rhythm_best_score
+        FROM users
+        ORDER BY rhythm_best_score DESC, id DESC
+        LIMIT 10
+    """)
+
+    leaders = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    if not user:
+        session.pop("user", None)
+        return redirect("/")
+
+    return render_template(
+        "rhythm.html",
+        username=username,
+        rhythm_best_score=user["rhythm_best_score"],
+        rhythm_games_played=user["rhythm_games_played"],
+        leaders=leaders
+    )
+
+
 @app.route("/save_score", methods=["POST"])
 def save_score():
     if "user" not in session:
@@ -533,6 +580,58 @@ def save_score():
         "best_level": new_best_level,
         "is_new_best": score > user["best_score"],
         "unlocked": unlocked
+    })
+
+
+@app.route("/save_rhythm_score", methods=["POST"])
+def save_rhythm_score():
+    if "user" not in session:
+        return jsonify({"status": "error"})
+
+    data = request.get_json()
+    score = int(data.get("score", 0))
+
+    username = session["user"]
+    earned_coins = score // 120
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT rhythm_best_score, rhythm_games_played, coins
+        FROM users
+        WHERE username = %s
+    """, (username,))
+
+    user = cursor.fetchone()
+
+    if not user:
+        cursor.close()
+        connection.close()
+        return jsonify({"status": "error"})
+
+    new_best = max(user["rhythm_best_score"], score)
+    new_games_played = user["rhythm_games_played"] + 1
+    new_coins = user["coins"] + earned_coins
+
+    cursor.execute("""
+        UPDATE users
+        SET rhythm_best_score = %s,
+            rhythm_games_played = %s,
+            coins = %s
+        WHERE username = %s
+    """, (new_best, new_games_played, new_coins, username))
+
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({
+        "status": "success",
+        "earned_coins": earned_coins,
+        "best_score": new_best,
+        "is_new_best": score > user["rhythm_best_score"]
     })
 
 
@@ -648,7 +747,9 @@ def profile():
             selected_skin,
             selected_trail,
             owned_skins,
-            owned_trails
+            owned_trails,
+            rhythm_best_score,
+            rhythm_games_played
         FROM users
         WHERE username = %s
     """, (username,))
