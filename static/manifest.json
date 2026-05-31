@@ -1,0 +1,51 @@
+{
+  "name": "NEON SNAKE",
+  "short_name": "Neon Snake",
+  "description": "Cyber neon snake game with levels, skins, achievements and player feedback.",
+  "start_url": "/game",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d2c42",
+  "theme_color": "#10283f",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Играть",
+      "short_name": "Играть",
+      "url": "/game",
+      "icons": [
+        {
+          "src": "/static/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Профиль",
+      "short_name": "Профиль",
+      "url": "/profile",
+      "icons": [
+        {
+          "src": "/static/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}

@@ -1513,6 +1513,15 @@ body{
     }
 }
 
+.app-mode body{
+    overscroll-behavior:none;
+}
+
+.app-mode .main-wrapper,
+.app-mode .shop-page{
+    min-height:100dvh;
+}
+
 /* ===== FULLSCREEN GAME MODE ===== */
 
 #gameContainer:fullscreen,
