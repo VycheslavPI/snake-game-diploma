@@ -28,6 +28,7 @@ const pauseText = document.getElementById("pauseText");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
 const effectsBtn = document.getElementById("effectsBtn");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
 const touchFeedback = document.getElementById("touchFeedback");
 
 const skinHead = window.GAME_CONFIG.skin.head;
@@ -1720,14 +1721,31 @@ canvas.addEventListener("touchend", (e) => {
     vibrateTouch();
 }, {passive: false});
 
-function toggleFullscreen() {
+async function toggleFullscreen() {
     const container = document.getElementById("gameContainer");
 
-    if (!document.fullscreenElement) {
-        container.requestFullscreen();
-    } else {
-        document.exitFullscreen();
+    try {
+        if (!document.fullscreenElement) {
+            if (container.requestFullscreen) {
+                await container.requestFullscreen();
+            } else {
+                container.classList.toggle("fullscreen-fallback");
+            }
+        } else {
+            await document.exitFullscreen();
+        }
+    } catch (error) {
+        container.classList.toggle("fullscreen-fallback");
     }
 }
+
+document.addEventListener("fullscreenchange", () => {
+    const isFullscreen = Boolean(document.fullscreenElement);
+    document.getElementById("gameContainer").classList.toggle("fullscreen-fallback", false);
+
+    if (fullscreenBtn) {
+        fullscreenBtn.innerText = isFullscreen ? "Выйти из экрана" : "Полный экран";
+    }
+});
 
 drawScene();
