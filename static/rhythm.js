@@ -11,9 +11,11 @@ const rhythmCombo = document.getElementById("rhythmCombo");
 const rhythmAccuracy = document.getElementById("rhythmAccuracy");
 const rhythmBest = document.getElementById("rhythmBest");
 
-const rhythmGrid = 13;
-const rhythmTile = rhythmCanvas.width / rhythmGrid;
-const hitWindow = 360;
+const laneCount = 5;
+const hitLineY = rhythmCanvas.height - 92;
+const noteSpeed = 0.27;
+const catchWindow = 30;
+const laneColors = ["#00e5ff", "#37ffb3", "#b7ff00", "#facc15", "#ff2f68"];
 
 let audioContext = null;
 let audioBuffer = null;
@@ -27,13 +29,18 @@ let combo = 0;
 let hits = 0;
 let misses = 0;
 let lastBeatTime = 0;
+let lastFrameTime = performance.now();
 let bassHistory = [];
-let pulses = [];
 let notes = [];
+let pulses = [];
 let particles = [];
-let snake = [{x: 6, y: 6}, {x: 5, y: 6}, {x: 4, y: 6}];
-let direction = {x: 1, y: 0};
+let playerLane = 2;
+let playerLaneTarget = 2;
 let pendingSave = false;
+
+function laneX(lane) {
+    return ((lane + 0.5) / laneCount) * rhythmCanvas.width;
+}
 
 function resetRhythmState() {
     score = 0;
@@ -41,12 +48,13 @@ function resetRhythmState() {
     hits = 0;
     misses = 0;
     lastBeatTime = 0;
+    lastFrameTime = performance.now();
     bassHistory = [];
-    pulses = [];
     notes = [];
+    pulses = [];
     particles = [];
-    snake = [{x: 6, y: 6}, {x: 5, y: 6}, {x: 4, y: 6}];
-    direction = {x: 1, y: 0};
+    playerLane = 2;
+    playerLaneTarget = 2;
     updateStats();
 }
 
@@ -61,96 +69,121 @@ function drawRhythmScene() {
     rhythmCtx.fillStyle = "#061a2d";
     rhythmCtx.fillRect(0, 0, rhythmCanvas.width, rhythmCanvas.height);
 
-    rhythmCtx.strokeStyle = "rgba(125,255,207,0.09)";
-    rhythmCtx.lineWidth = 1;
-    for (let i = 0; i <= rhythmGrid; i++) {
-        const pos = i * rhythmTile;
-        rhythmCtx.beginPath();
-        rhythmCtx.moveTo(pos, 0);
-        rhythmCtx.lineTo(pos, rhythmCanvas.height);
-        rhythmCtx.stroke();
-        rhythmCtx.beginPath();
-        rhythmCtx.moveTo(0, pos);
-        rhythmCtx.lineTo(rhythmCanvas.width, pos);
-        rhythmCtx.stroke();
-    }
-
+    drawLanes();
     drawPulses();
     drawNotes();
-    drawSnake();
+    drawCatcher();
     drawParticles();
 
-    rhythmCtx.fillStyle = "rgba(159,255,212,0.74)";
+    rhythmCtx.fillStyle = "rgba(159,255,212,0.78)";
     rhythmCtx.font = "bold 18px Arial";
-    rhythmCtx.fillText("BASS SYNC", 22, 34);
+    rhythmCtx.fillText("NOTE CATCH", 22, 34);
+}
+
+function drawLanes() {
+    const laneWidth = rhythmCanvas.width / laneCount;
+
+    for (let lane = 0; lane < laneCount; lane++) {
+        const x = lane * laneWidth;
+        const center = laneX(lane);
+
+        rhythmCtx.fillStyle = lane % 2 === 0 ? "rgba(255,255,255,0.018)" : "rgba(255,255,255,0.034)";
+        rhythmCtx.fillRect(x, 0, laneWidth, rhythmCanvas.height);
+
+        rhythmCtx.strokeStyle = "rgba(125,255,207,0.14)";
+        rhythmCtx.lineWidth = 1;
+        rhythmCtx.beginPath();
+        rhythmCtx.moveTo(x, 0);
+        rhythmCtx.lineTo(x, rhythmCanvas.height);
+        rhythmCtx.stroke();
+
+        rhythmCtx.save();
+        rhythmCtx.globalAlpha = 0.3;
+        rhythmCtx.strokeStyle = laneColors[lane];
+        rhythmCtx.lineWidth = 3;
+        rhythmCtx.beginPath();
+        rhythmCtx.moveTo(center, 0);
+        rhythmCtx.lineTo(center, rhythmCanvas.height);
+        rhythmCtx.stroke();
+        rhythmCtx.restore();
+    }
+
+    rhythmCtx.save();
+    rhythmCtx.strokeStyle = "#9fffd4";
+    rhythmCtx.lineWidth = 4;
+    rhythmCtx.shadowColor = "#37ffb3";
+    rhythmCtx.shadowBlur = 18;
+    rhythmCtx.beginPath();
+    rhythmCtx.moveTo(18, hitLineY);
+    rhythmCtx.lineTo(rhythmCanvas.width - 18, hitLineY);
+    rhythmCtx.stroke();
+
+    rhythmCtx.fillStyle = "rgba(55,255,179,0.08)";
+    rhythmCtx.fillRect(0, hitLineY - catchWindow, rhythmCanvas.width, catchWindow * 2);
+    rhythmCtx.restore();
 }
 
 function drawPulses() {
     const now = performance.now();
-    pulses = pulses.filter(pulse => now - pulse.time < 900);
+    pulses = pulses.filter(pulse => now - pulse.time < 650);
 
     pulses.forEach(pulse => {
-        const age = now - pulse.time;
-        const progress = age / 900;
+        const progress = (now - pulse.time) / 650;
         rhythmCtx.save();
         rhythmCtx.globalAlpha = 1 - progress;
-        rhythmCtx.strokeStyle = pulse.hit ? "#b7ff00" : "#00e5ff";
-        rhythmCtx.lineWidth = 5 - progress * 3;
-        rhythmCtx.shadowColor = pulse.hit ? "#b7ff00" : "#00e5ff";
-        rhythmCtx.shadowBlur = 22;
+        rhythmCtx.strokeStyle = pulse.color;
+        rhythmCtx.lineWidth = 4 - progress * 2;
+        rhythmCtx.shadowColor = pulse.color;
+        rhythmCtx.shadowBlur = 20;
         rhythmCtx.beginPath();
-        rhythmCtx.arc(rhythmCanvas.width / 2, rhythmCanvas.height / 2, 50 + progress * 230, 0, Math.PI * 2);
+        rhythmCtx.arc(laneX(pulse.lane), hitLineY, 22 + progress * 62, 0, Math.PI * 2);
         rhythmCtx.stroke();
         rhythmCtx.restore();
     });
 }
 
 function drawNotes() {
-    const now = performance.now();
-    notes = notes.filter(note => now - note.time < 1600);
-
     notes.forEach(note => {
-        const age = now - note.time;
-        const pulse = 1 + Math.sin(age / 80) * 0.08;
-        const x = note.x * rhythmTile + rhythmTile / 2;
-        const y = note.y * rhythmTile + rhythmTile / 2;
+        const x = laneX(note.lane);
+        const pulse = 1 + Math.sin(performance.now() / 80) * 0.06;
 
         rhythmCtx.save();
-        rhythmCtx.globalAlpha = Math.max(0.25, 1 - age / 1600);
-        rhythmCtx.fillStyle = note.hit ? "#b7ff00" : "#ff2f68";
-        rhythmCtx.shadowColor = note.hit ? "#b7ff00" : "#ff2f68";
-        rhythmCtx.shadowBlur = 20;
+        rhythmCtx.fillStyle = note.color;
+        rhythmCtx.shadowColor = note.color;
+        rhythmCtx.shadowBlur = 22;
         rhythmCtx.beginPath();
-        rhythmCtx.arc(x, y, 10 * pulse, 0, Math.PI * 2);
+        rhythmCtx.roundRect(x - 28 * pulse, note.y - 14 * pulse, 56 * pulse, 28 * pulse, 10);
+        rhythmCtx.fill();
+
+        rhythmCtx.fillStyle = "rgba(255,255,255,0.72)";
+        rhythmCtx.beginPath();
+        rhythmCtx.arc(x + 12, note.y - 5, 4, 0, Math.PI * 2);
         rhythmCtx.fill();
         rhythmCtx.restore();
     });
 }
 
-function drawSnake() {
+function drawCatcher() {
+    playerLane += (playerLaneTarget - playerLane) * 0.24;
+    const x = laneX(playerLane);
+
     rhythmCtx.save();
-    rhythmCtx.lineCap = "round";
-    rhythmCtx.lineJoin = "round";
     rhythmCtx.shadowColor = "#00ff99";
-    rhythmCtx.shadowBlur = 18;
-
+    rhythmCtx.shadowBlur = 24;
+    rhythmCtx.fillStyle = "#00ff99";
     rhythmCtx.beginPath();
-    snake.forEach((part, index) => {
-        const x = part.x * rhythmTile + rhythmTile / 2;
-        const y = part.y * rhythmTile + rhythmTile / 2;
-        if (index === 0) rhythmCtx.moveTo(x, y);
-        else rhythmCtx.lineTo(x, y);
-    });
-    rhythmCtx.strokeStyle = "#00ff99";
-    rhythmCtx.lineWidth = 18;
-    rhythmCtx.stroke();
+    rhythmCtx.roundRect(x - 46, hitLineY + 32, 92, 24, 12);
+    rhythmCtx.fill();
 
-    const head = snake[0];
-    const hx = head.x * rhythmTile + rhythmTile / 2;
-    const hy = head.y * rhythmTile + rhythmTile / 2;
     rhythmCtx.fillStyle = "#b7ff00";
     rhythmCtx.beginPath();
-    rhythmCtx.arc(hx, hy, 15, 0, Math.PI * 2);
+    rhythmCtx.arc(x, hitLineY + 25, 18, 0, Math.PI * 2);
+    rhythmCtx.fill();
+
+    rhythmCtx.fillStyle = "#07182a";
+    rhythmCtx.beginPath();
+    rhythmCtx.arc(x - 6, hitLineY + 20, 3, 0, Math.PI * 2);
+    rhythmCtx.arc(x + 6, hitLineY + 20, 3, 0, Math.PI * 2);
     rhythmCtx.fill();
     rhythmCtx.restore();
 }
@@ -177,7 +210,7 @@ function drawParticles() {
 function createBurst(x, y, color) {
     for (let i = 0; i < 18; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 1 + Math.random() * 3;
+        const speed = 1 + Math.random() * 3.4;
         particles.push({
             x,
             y,
@@ -215,89 +248,82 @@ function analyzeBeat() {
     const now = performance.now();
     const sensitivity = parseFloat(sensitivityInput.value);
 
-    if (bass > Math.max(38, baseline * sensitivity) && now - lastBeatTime > 240) {
+    if (bass > Math.max(38, baseline * sensitivity) && now - lastBeatTime > 210) {
         lastBeatTime = now;
-        pulses.push({time: now, hit: false});
-        spawnNote();
+        spawnFallingNote(bass);
     }
 }
 
-function spawnNote() {
-    const head = snake[0];
-    let x = head.x + direction.x * 2;
-    let y = head.y + direction.y * 2;
+function spawnFallingNote(power) {
+    const lane = Math.floor(Math.random() * laneCount);
+    const color = laneColors[lane];
 
-    if (x < 1 || x > rhythmGrid - 2 || y < 1 || y > rhythmGrid - 2) {
-        x = 1 + Math.floor(Math.random() * (rhythmGrid - 2));
-        y = 1 + Math.floor(Math.random() * (rhythmGrid - 2));
-    }
+    notes.push({
+        lane,
+        y: -28,
+        speed: noteSpeed + Math.min(0.09, power / 1800),
+        color,
+        caught: false
+    });
 
-    notes.push({x, y, time: performance.now(), hit: false});
+    pulses.push({lane, color, time: performance.now()});
 }
 
-function setDirection(key) {
-    const next = {
-        ArrowUp: {x: 0, y: -1},
-        KeyW: {x: 0, y: -1},
-        ArrowDown: {x: 0, y: 1},
-        KeyS: {x: 0, y: 1},
-        ArrowLeft: {x: -1, y: 0},
-        KeyA: {x: -1, y: 0},
-        ArrowRight: {x: 1, y: 0},
-        KeyD: {x: 1, y: 0},
-        Space: direction
-    }[key];
+function updateNotes(delta) {
+    notes.forEach(note => {
+        note.y += note.speed * delta;
+    });
 
-    if (!next) return false;
-    if (snake.length > 1 && next.x === -direction.x && next.y === -direction.y) return true;
-    direction = next;
-    return true;
+    notes = notes.filter(note => {
+        if (note.caught) return false;
+
+        const laneMatch = Math.round(playerLane) === note.lane;
+        const distance = Math.abs(note.y - hitLineY);
+
+        if (laneMatch && distance <= catchWindow) {
+            catchNote(note, distance);
+            return false;
+        }
+
+        if (note.y > hitLineY + catchWindow + 28) {
+            missNote(note);
+            return false;
+        }
+
+        return true;
+    });
 }
 
-function attemptMove() {
-    if (!isPlaying) return;
-
-    const now = performance.now();
-    const currentPulse = pulses
-        .slice()
-        .reverse()
-        .find(pulse => !pulse.hit && now - pulse.time >= 0 && now - pulse.time <= hitWindow);
-
-    if (!currentPulse) {
-        misses++;
-        combo = 0;
-        createBurst(rhythmCanvas.width / 2, rhythmCanvas.height / 2, "#ff2f68");
-        updateStats();
-        return;
-    }
-
-    currentPulse.hit = true;
+function catchNote(note, distance) {
+    note.caught = true;
     hits++;
     combo++;
 
-    const head = snake[0];
-    const nextHead = {
-        x: (head.x + direction.x + rhythmGrid) % rhythmGrid,
-        y: (head.y + direction.y + rhythmGrid) % rhythmGrid
-    };
+    const timingBonus = Math.max(0, Math.round((1 - distance / catchWindow) * 40));
+    score += 25 + timingBonus + Math.min(combo, 60);
 
-    snake.unshift(nextHead);
-    snake.pop();
-
-    const note = notes.find(item => !item.hit && item.x === nextHead.x && item.y === nextHead.y);
-    const bonus = note ? 30 : 0;
-
-    if (note) {
-        note.hit = true;
-        createBurst(nextHead.x * rhythmTile + rhythmTile / 2, nextHead.y * rhythmTile + rhythmTile / 2, "#b7ff00");
-    }
-
-    score += 10 + Math.min(combo, 40) + bonus;
+    createBurst(laneX(note.lane), hitLineY, note.color);
     updateStats();
 }
 
+function missNote(note) {
+    misses++;
+    combo = 0;
+    createBurst(laneX(note.lane), hitLineY + 18, "#ff2f68");
+    updateStats();
+}
+
+function movePlayer(direction) {
+    playerLaneTarget = Math.max(0, Math.min(laneCount - 1, playerLaneTarget + direction));
+}
+
 function rhythmLoop() {
+    const now = performance.now();
+    const delta = Math.min(50, now - lastFrameTime);
+    lastFrameTime = now;
+
     analyzeBeat();
+    updateNotes(delta);
     drawRhythmScene();
     animationFrame = requestAnimationFrame(rhythmLoop);
 }
@@ -311,7 +337,7 @@ async function loadTrack(file) {
     audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
     trackName.innerText = file.name;
-    rhythmHint.innerText = "Трек готов. Нажмите старт и двигайтесь только в момент импульса.";
+    rhythmHint.innerText = "Трек готов. Нажмите старт: ноты будут падать сверху, ловите их в нижней зоне.";
     rhythmStartBtn.disabled = false;
 }
 
@@ -338,7 +364,7 @@ async function startRhythm() {
     pendingSave = true;
     rhythmStartBtn.disabled = true;
     rhythmStopBtn.disabled = false;
-    rhythmHint.innerText = "Ловите импульс: стрелки, WASD или пробел.";
+    rhythmHint.innerText = "Двигайтесь влево/вправо: A/D, стрелки или тап по дорожке.";
     rhythmLoop();
 }
 
@@ -404,27 +430,22 @@ rhythmStartBtn.addEventListener("click", startRhythm);
 rhythmStopBtn.addEventListener("click", () => stopRhythm(true));
 
 window.addEventListener("keydown", event => {
-    if (!setDirection(event.code)) return;
-    event.preventDefault();
-    attemptMove();
+    if (["ArrowLeft", "KeyA"].includes(event.code)) {
+        event.preventDefault();
+        movePlayer(-1);
+    }
+
+    if (["ArrowRight", "KeyD"].includes(event.code)) {
+        event.preventDefault();
+        movePlayer(1);
+    }
 });
 
 rhythmCanvas.addEventListener("pointerdown", event => {
     const rect = rhythmCanvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const dx = x - centerX;
-    const dy = y - centerY;
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-        direction = dx > 0 ? {x: 1, y: 0} : {x: -1, y: 0};
-    } else {
-        direction = dy > 0 ? {x: 0, y: 1} : {x: 0, y: -1};
-    }
-
-    attemptMove();
+    const lane = Math.floor((x / rect.width) * laneCount);
+    playerLaneTarget = Math.max(0, Math.min(laneCount - 1, lane));
 });
 
 drawRhythmScene();
