@@ -13,10 +13,10 @@ const rhythmBest = document.getElementById("rhythmBest");
 
 const laneCount = 5;
 const hitLineY = rhythmCanvas.height - 92;
-const noteSpeed = 0.2;
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+const noteSpeed = isTouchDevice ? 0.16 : 0.19;
 const catchWindow = 44;
-const minBeatGap = 430;
-const maxActiveNotes = 5;
+const maxActiveNotes = isTouchDevice ? 3 : 4;
 const laneColors = ["#00e5ff", "#37ffb3", "#b7ff00", "#facc15", "#ff2f68"];
 
 let audioContext = null;
@@ -31,6 +31,7 @@ let combo = 0;
 let hits = 0;
 let misses = 0;
 let lastBeatTime = 0;
+let lastBass = 0;
 let lastFrameTime = performance.now();
 let bassHistory = [];
 let notes = [];
@@ -50,6 +51,7 @@ function resetRhythmState() {
     hits = 0;
     misses = 0;
     lastBeatTime = 0;
+    lastBass = 0;
     lastFrameTime = performance.now();
     bassHistory = [];
     notes = [];
@@ -126,6 +128,8 @@ function drawLanes() {
 }
 
 function drawPulses() {
+    if (isTouchDevice) return;
+
     const now = performance.now();
     pulses = pulses.filter(pulse => now - pulse.time < 650);
 
@@ -152,7 +156,7 @@ function drawNotes() {
         rhythmCtx.save();
         rhythmCtx.fillStyle = note.color;
         rhythmCtx.shadowColor = note.color;
-        rhythmCtx.shadowBlur = 22;
+        rhythmCtx.shadowBlur = isTouchDevice ? 8 : 22;
         rhythmCtx.beginPath();
         rhythmCtx.roundRect(x - 28 * pulse, note.y - 14 * pulse, 56 * pulse, 28 * pulse, 10);
         rhythmCtx.fill();
@@ -166,12 +170,12 @@ function drawNotes() {
 }
 
 function drawCatcher() {
-    playerLane += (playerLaneTarget - playerLane) * 0.24;
+    playerLane += (playerLaneTarget - playerLane) * (isTouchDevice ? 1 : 0.35);
     const x = laneX(playerLane);
 
     rhythmCtx.save();
     rhythmCtx.shadowColor = "#00ff99";
-    rhythmCtx.shadowBlur = 24;
+    rhythmCtx.shadowBlur = isTouchDevice ? 10 : 24;
     rhythmCtx.fillStyle = "#00ff99";
     rhythmCtx.beginPath();
     rhythmCtx.roundRect(x - 46, hitLineY + 32, 92, 24, 12);
@@ -191,6 +195,10 @@ function drawCatcher() {
 }
 
 function drawParticles() {
+    if (isTouchDevice && particles.length > 18) {
+        particles.splice(0, particles.length - 18);
+    }
+
     particles = particles.filter(particle => particle.life > 0);
     particles.forEach(particle => {
         rhythmCtx.save();
@@ -210,7 +218,9 @@ function drawParticles() {
 }
 
 function createBurst(x, y, color) {
-    for (let i = 0; i < 18; i++) {
+    const count = isTouchDevice ? 7 : 18;
+
+    for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 1 + Math.random() * 3.4;
         particles.push({
@@ -248,16 +258,22 @@ function analyzeBeat() {
 
     const baseline = average(bassHistory);
     const now = performance.now();
-    const sensitivity = parseFloat(sensitivityInput.value);
+    const density = parseFloat(sensitivityInput.value);
+    const thresholdMultiplier = 2.55 - density;
+    const minBeatGap = Math.round(760 - density * 220) + (isTouchDevice ? 140 : 0);
+    const risingFast = bass > lastBass + 8;
 
     if (
-        bass > Math.max(46, baseline * sensitivity) &&
+        bass > Math.max(58, baseline * thresholdMultiplier) &&
+        risingFast &&
         now - lastBeatTime > minBeatGap &&
         notes.length < maxActiveNotes
     ) {
         lastBeatTime = now;
         spawnFallingNote(bass);
     }
+
+    lastBass = bass;
 }
 
 function spawnFallingNote(power) {
@@ -267,7 +283,7 @@ function spawnFallingNote(power) {
     notes.push({
         lane,
         y: -28,
-        speed: noteSpeed + Math.min(0.05, power / 2600),
+        speed: noteSpeed + Math.min(isTouchDevice ? 0.025 : 0.04, power / 3600),
         color,
         caught: false
     });
@@ -329,6 +345,12 @@ function setPlayerLane(lane, instant = false) {
     if (instant) {
         playerLane = playerLaneTarget;
     }
+}
+
+function laneFromPointer(event) {
+    const rect = rhythmCanvas.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width - 1, event.clientX - rect.left));
+    return Math.floor((x / rect.width) * laneCount);
 }
 
 function rhythmLoop() {
@@ -456,20 +478,16 @@ window.addEventListener("keydown", event => {
 });
 
 rhythmCanvas.addEventListener("pointerdown", event => {
-    const rect = rhythmCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const lane = Math.floor((x / rect.width) * laneCount);
-    setPlayerLane(lane, true);
+    event.preventDefault();
+    setPlayerLane(laneFromPointer(event), true);
     rhythmCanvas.setPointerCapture(event.pointerId);
-});
+}, {passive: false});
 
 rhythmCanvas.addEventListener("pointermove", event => {
-    if (!isPlaying && event.buttons !== 1) return;
+    if (event.buttons !== 1 && event.pointerType !== "touch") return;
 
-    const rect = rhythmCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const lane = Math.floor((x / rect.width) * laneCount);
-    setPlayerLane(lane, true);
-});
+    event.preventDefault();
+    setPlayerLane(laneFromPointer(event), true);
+}, {passive: false});
 
 drawRhythmScene();
