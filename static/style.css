@@ -1158,3 +1158,195 @@ body{
         box-shadow:0 0 22px rgba(0,255,150,0.3);
     }
 }
+
+/* ===== BRIGHT GAME SHELL ===== */
+
+body{
+    background:
+        radial-gradient(circle at 18% 12%, rgba(72,211,255,0.2), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(86,255,177,0.18), transparent 26%),
+        linear-gradient(135deg, #0d2c42 0%, #123856 48%, #10283f 100%);
+    color:#f2fdff;
+}
+
+.background-grid{
+    opacity:0.82;
+    background-color:transparent;
+    background-image:
+        linear-gradient(rgba(166,239,255,0.11) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(166,239,255,0.11) 1px, transparent 1px);
+}
+
+.glass-card,
+.leaderboard,
+.profile-panel,
+.achievement-card,
+.skin-card,
+.result-panel{
+    background:rgba(12,36,58,0.88);
+    border-color:rgba(157,242,255,0.28);
+    box-shadow:
+        0 18px 50px rgba(0,12,24,0.28),
+        0 0 32px rgba(86,255,177,0.12);
+}
+
+.title{
+    display:inline-flex;
+    align-items:center;
+    gap:12px;
+    color:#9fffd4;
+    letter-spacing:0;
+}
+
+.title::before,
+.boot-logo::before{
+    content:"S";
+    display:inline-grid;
+    place-items:center;
+    width:44px;
+    height:44px;
+    border-radius:12px;
+    color:#062031;
+    font-size:25px;
+    font-weight:900;
+    line-height:1;
+    background:
+        radial-gradient(circle at 30% 24%, #ffffff 0 8%, transparent 9%),
+        linear-gradient(135deg, #b7ff00 0%, #00ff99 48%, #00ccff 100%);
+    box-shadow:
+        0 0 18px rgba(86,255,177,0.55),
+        inset 0 -5px 12px rgba(0,47,64,0.24);
+    text-shadow:none;
+}
+
+.boot-logo::before{
+    margin-right:14px;
+    vertical-align:middle;
+}
+
+.main-wrapper{
+    max-width:none;
+    min-height:100svh;
+    align-items:stretch;
+    gap:20px;
+    padding:18px;
+}
+
+.left-panel{
+    flex:1 1 760px;
+    min-width:0;
+    display:flex;
+}
+
+.right-panel{
+    flex:0 1 350px;
+    min-width:300px;
+    display:flex;
+}
+
+.left-panel #gameContainer{
+    max-width:none;
+    min-height:calc(100svh - 36px);
+    display:flex;
+    flex-direction:column;
+}
+
+.right-panel .leaderboard{
+    width:100%;
+    margin-top:0;
+}
+
+.instructions{
+    background:rgba(17,52,78,0.72);
+    border-color:rgba(157,242,255,0.22);
+}
+
+.stat-box,
+.result-stats div,
+.feedback-item,
+.profile-stat{
+    background:rgba(16,49,75,0.9);
+    border-color:rgba(157,242,255,0.2);
+}
+
+.canvas-wrap{
+    flex:1;
+    min-height:min(58svh, 640px);
+}
+
+#gameCanvas{
+    width:min(100%, 68svh, 680px);
+    max-width:680px;
+    margin:0 auto;
+    border-color:#7dffcf;
+    background:#08223a;
+    box-shadow:
+        0 0 28px rgba(86,255,177,0.38),
+        0 0 70px rgba(0,204,255,0.2);
+}
+
+.shop-page{
+    background:
+        radial-gradient(circle at 18% 10%, rgba(72,211,255,0.16), transparent 28%),
+        radial-gradient(circle at 82% 14%, rgba(86,255,177,0.14), transparent 24%);
+}
+
+.shop-card{
+    max-width:1280px;
+}
+
+.auth-card{
+    align-self:center;
+}
+
+@media(max-width:1100px){
+    .main-wrapper{
+        flex-direction:column;
+    }
+
+    .right-panel{
+        min-width:0;
+        flex:1 1 auto;
+        width:100%;
+    }
+
+    .left-panel #gameContainer{
+        min-height:auto;
+    }
+
+    .leaderboard{
+        max-width:none;
+    }
+}
+
+@media(max-width:700px){
+    .main-wrapper{
+        padding:10px;
+        gap:12px;
+    }
+
+    .glass-card{
+        border-radius:18px;
+        padding:16px;
+    }
+
+    .title{
+        font-size:30px;
+        gap:9px;
+    }
+
+    .title::before{
+        width:36px;
+        height:36px;
+        border-radius:10px;
+        font-size:21px;
+    }
+
+    .canvas-wrap{
+        min-height:auto;
+    }
+
+    #gameCanvas{
+        width:100%;
+    }
+}
