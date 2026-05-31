@@ -9,12 +9,13 @@ const rhythmHint = document.getElementById("rhythmHint");
 const rhythmScore = document.getElementById("rhythmScore");
 const rhythmCombo = document.getElementById("rhythmCombo");
 const rhythmAccuracy = document.getElementById("rhythmAccuracy");
+const rhythmLives = document.getElementById("rhythmLives");
 const rhythmBest = document.getElementById("rhythmBest");
 
 const laneCount = 5;
 const hitLineY = rhythmCanvas.height - 92;
 const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
-const noteSpeed = isTouchDevice ? 0.16 : 0.19;
+const noteTravelTime = isTouchDevice ? 2500 : 2250;
 const catchWindow = 44;
 const maxActiveNotes = isTouchDevice ? 3 : 4;
 const laneColors = ["#00e5ff", "#37ffb3", "#b7ff00", "#facc15", "#ff2f68"];
@@ -30,16 +31,21 @@ let score = 0;
 let combo = 0;
 let hits = 0;
 let misses = 0;
+let lives = 5;
 let lastBeatTime = 0;
-let lastBass = 0;
+let lastScheduledTarget = 0;
 let lastFrameTime = performance.now();
-let bassHistory = [];
+let previousSpectrum = null;
+let fluxHistory = [];
+let beatIntervals = [];
+let estimatedBeatInterval = 620;
 let notes = [];
 let pulses = [];
 let particles = [];
 let playerLane = 2;
 let playerLaneTarget = 2;
 let pendingSave = false;
+let gameEnded = false;
 
 function laneX(lane) {
     return ((lane + 0.5) / laneCount) * rhythmCanvas.width;
@@ -50,21 +56,27 @@ function resetRhythmState() {
     combo = 0;
     hits = 0;
     misses = 0;
+    lives = 5;
     lastBeatTime = 0;
-    lastBass = 0;
+    lastScheduledTarget = 0;
     lastFrameTime = performance.now();
-    bassHistory = [];
+    previousSpectrum = null;
+    fluxHistory = [];
+    beatIntervals = [];
+    estimatedBeatInterval = 620;
     notes = [];
     pulses = [];
     particles = [];
     playerLane = 2;
     playerLaneTarget = 2;
+    gameEnded = false;
     updateStats();
 }
 
 function updateStats() {
     rhythmScore.innerText = score;
     rhythmCombo.innerText = combo;
+    rhythmLives.innerText = lives;
     const total = hits + misses;
     rhythmAccuracy.innerText = total ? Math.round((hits / total) * 100) + "%" : "0%";
 }
@@ -245,45 +257,79 @@ function analyzeBeat() {
     if (!analyser || !frequencyData) return;
 
     analyser.getByteFrequencyData(frequencyData);
-    const bassBins = Math.max(8, Math.floor(frequencyData.length * 0.08));
-    let bass = 0;
 
-    for (let i = 0; i < bassBins; i++) {
-        bass += frequencyData[i];
+    const lowBinCount = Math.max(18, Math.floor(frequencyData.length * 0.16));
+    let flux = 0;
+
+    if (previousSpectrum) {
+        for (let i = 1; i < lowBinCount; i++) {
+            const diff = frequencyData[i] - previousSpectrum[i];
+            if (diff > 0) {
+                flux += diff * (1 - i / (lowBinCount * 1.35));
+            }
+        }
     }
 
-    bass /= bassBins;
-    bassHistory.push(bass);
-    if (bassHistory.length > 44) bassHistory.shift();
+    previousSpectrum = new Uint8Array(frequencyData);
+    flux /= lowBinCount;
+    fluxHistory.push(flux);
+    if (fluxHistory.length > 60) fluxHistory.shift();
 
-    const baseline = average(bassHistory);
+    const baseline = average(fluxHistory);
     const now = performance.now();
     const density = parseFloat(sensitivityInput.value);
-    const thresholdMultiplier = 2.55 - density;
-    const minBeatGap = Math.round(760 - density * 220) + (isTouchDevice ? 140 : 0);
-    const risingFast = bass > lastBass + 8;
+    const thresholdMultiplier = 2.35 - density * 0.42;
+    const minBeatGap = Math.round(620 - density * 140) + (isTouchDevice ? 130 : 0);
+    const isOnset = flux > Math.max(7, baseline * thresholdMultiplier);
 
     if (
-        bass > Math.max(58, baseline * thresholdMultiplier) &&
-        risingFast &&
+        isOnset &&
         now - lastBeatTime > minBeatGap &&
         notes.length < maxActiveNotes
     ) {
-        lastBeatTime = now;
-        spawnFallingNote(bass);
+        registerBeat(now);
     }
-
-    lastBass = bass;
 }
 
-function spawnFallingNote(power) {
+function registerBeat(now) {
+    if (lastBeatTime > 0) {
+        const interval = now - lastBeatTime;
+
+        if (interval >= 320 && interval <= 1200) {
+            beatIntervals.push(interval);
+            if (beatIntervals.length > 8) beatIntervals.shift();
+            estimatedBeatInterval = average(beatIntervals);
+        }
+    }
+
+    lastBeatTime = now;
+    schedulePredictedNote(now);
+}
+
+function schedulePredictedNote(now) {
+    let targetTime = now + estimatedBeatInterval;
+
+    while (targetTime - now < noteTravelTime) {
+        targetTime += estimatedBeatInterval;
+    }
+
+    if (targetTime - lastScheduledTarget < estimatedBeatInterval * 0.55) {
+        return;
+    }
+
+    lastScheduledTarget = targetTime;
+    spawnFallingNote(targetTime, now);
+}
+
+function spawnFallingNote(targetTime, now) {
     const lane = Math.floor(Math.random() * laneCount);
     const color = laneColors[lane];
 
     notes.push({
         lane,
         y: -28,
-        speed: noteSpeed + Math.min(isTouchDevice ? 0.025 : 0.04, power / 3600),
+        spawnTime: now,
+        targetTime,
         color,
         caught: false
     });
@@ -293,7 +339,8 @@ function spawnFallingNote(power) {
 
 function updateNotes(delta) {
     notes.forEach(note => {
-        note.y += note.speed * delta;
+        const progress = (performance.now() - note.spawnTime) / (note.targetTime - note.spawnTime);
+        note.y = -28 + progress * (hitLineY + 28);
     });
 
     notes = notes.filter(note => {
@@ -330,9 +377,14 @@ function catchNote(note, distance) {
 
 function missNote(note) {
     misses++;
+    lives--;
     combo = 0;
     createBurst(laneX(note.lane), hitLineY + 18, "#ff2f68");
     updateStats();
+
+    if (lives <= 0) {
+        endRhythmGame();
+    }
 }
 
 function movePlayer(direction) {
@@ -361,7 +413,10 @@ function rhythmLoop() {
     analyzeBeat();
     updateNotes(delta);
     drawRhythmScene();
-    animationFrame = requestAnimationFrame(rhythmLoop);
+
+    if (isPlaying) {
+        animationFrame = requestAnimationFrame(rhythmLoop);
+    }
 }
 
 async function loadTrack(file) {
@@ -402,6 +457,11 @@ async function startRhythm() {
     rhythmStopBtn.disabled = false;
     rhythmHint.innerText = "Двигайтесь влево/вправо: A/D, стрелки или тап по дорожке.";
     rhythmLoop();
+}
+
+function endRhythmGame() {
+    rhythmHint.innerText = "Поражение: жизни закончились. Сохраняю результат...";
+    stopRhythm(true);
 }
 
 function stopRhythm(shouldSave = true) {
