@@ -541,57 +541,218 @@ function drawMiniBoss() {
     ctx.fillStyle = "rgba(255, 0, 90, 0.08)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.shadowColor = "#ff0055";
-    ctx.shadowBlur = 30;
-    ctx.fillStyle = "#ff0055";
-
-    ctx.beginPath();
-    ctx.arc(
-        canvas.width / 2,
-        45,
-        22 + Math.sin(miniBossPulse) * 4,
-        0,
-        Math.PI * 2
-    );
-    ctx.fill();
+    drawPixelMiniBoss(canvas.width / 2, 55);
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 15px Arial";
     ctx.textAlign = "center";
-    ctx.fillText("MINI BOSS " + miniBossTimer, canvas.width / 2, 85);
+    ctx.shadowColor = "#facc15";
+    ctx.shadowBlur = 10;
+    ctx.fillText("PIXEL BOSS " + miniBossTimer, canvas.width / 2, 112);
 
     ctx.restore();
 
     drawMiniBossLasers();
 }
 
+function drawPixelMiniBoss(centerX, centerY) {
+    const pixel = 4;
+    const floatY = Math.round(Math.sin(miniBossPulse * 1.4) * 2);
+    const pulse = 1 + Math.sin(miniBossPulse * 2) * 0.04;
+
+    ctx.save();
+    ctx.translate(Math.round(centerX), Math.round(centerY + floatY));
+    ctx.scale(pulse, pulse);
+    ctx.imageSmoothingEnabled = false;
+    ctx.shadowColor = "#f8fafc";
+    ctx.shadowBlur = 12;
+
+    drawPixelBossHalo(pixel);
+    drawPixelBossWing(-1, pixel);
+    drawPixelBossWing(1, pixel);
+    drawPixelBossCore(pixel);
+
+    ctx.restore();
+}
+
+function drawBossPixel(x, y, width, height, color, pixel) {
+    ctx.fillStyle = color;
+    ctx.fillRect(
+        Math.round(x * pixel),
+        Math.round(y * pixel),
+        Math.round(width * pixel),
+        Math.round(height * pixel)
+    );
+}
+
+function drawPixelBossHalo(pixel) {
+    ctx.save();
+    ctx.shadowColor = "#facc15";
+    ctx.shadowBlur = 8;
+
+    const gold = "#f7c948";
+    [
+        [-10, -13, 20, 1],
+        [-15, -9, 1, 8],
+        [14, -9, 1, 8],
+        [-15, 2, 1, 8],
+        [14, 2, 1, 8],
+        [-10, 11, 20, 1],
+        [-13, -11, 3, 1],
+        [10, -11, 3, 1],
+        [-13, 10, 3, 1],
+        [10, 10, 3, 1]
+    ].forEach(part => drawBossPixel(part[0], part[1], part[2], part[3], gold, pixel));
+
+    ctx.restore();
+}
+
+function drawPixelBossWing(side, pixel) {
+    const white = "#f8fafc";
+    const light = "#dbe4ec";
+    const mid = "#aab4bf";
+    const dark = "#111827";
+
+    const blades = [
+        {x: 6, y: -16, length: 14, slope: -0.72},
+        {x: 5, y: -9, length: 16, slope: -0.36},
+        {x: 5, y: -2, length: 17, slope: 0},
+        {x: 5, y: 5, length: 15, slope: 0.36},
+        {x: 6, y: 12, length: 13, slope: 0.72}
+    ];
+
+    blades.forEach((blade, index) => {
+        for (let i = 0; i < blade.length; i++) {
+            const width = Math.max(1, 3 - Math.floor(i / 6));
+            const x = side * (blade.x + i);
+            const y = blade.y + Math.round(i * blade.slope);
+            const shade = i % 4 === 0 ? light : white;
+
+            drawBossPixel(side === 1 ? x : x - width + 1, y, width, 1, shade, pixel);
+
+            if (i > 2 && i % 3 === 0) {
+                drawBossPixel(side === 1 ? x : x, y + 1, 1, 1, mid, pixel);
+            }
+
+            if (i === blade.length - 1) {
+                drawBossPixel(side === 1 ? x + width : x - width, y, 1, 1, mid, pixel);
+            }
+        }
+
+        const rootX = side === 1 ? 4 : -6;
+        drawBossPixel(rootX, blade.y + Math.round(index * 0.3), 2, 3, dark, pixel);
+    });
+}
+
+function drawPixelBossCore(pixel) {
+    const black = "#0b1220";
+    const dark = "#111827";
+    const white = "#f8fafc";
+    const light = "#dbe4ec";
+    const mid = "#94a3b8";
+
+    [
+        [-5, -7, 10, 2, dark],
+        [-7, -5, 14, 5, white],
+        [-8, 0, 16, 6, light],
+        [-6, 6, 12, 3, white],
+        [-4, 9, 8, 2, mid]
+    ].forEach(part => drawBossPixel(part[0], part[1], part[2], part[3], part[4], pixel));
+
+    drawBossPixel(-7, -2, 14, 8, black, pixel);
+    drawBossPixel(-5, -4, 10, 2, white, pixel);
+    drawBossPixel(-4, 5, 8, 2, white, pixel);
+
+    ctx.save();
+    ctx.shadowColor = "#ffffff";
+    ctx.shadowBlur = 7;
+    drawBossPixel(-3, -1, 6, 4, "#020617", pixel);
+    drawBossPixel(-2, 0, 4, 2, "#111827", pixel);
+    drawBossPixel(1, -1, 1, 1, "#ffffff", pixel);
+    drawBossPixel(2, 0, 1, 1, "#ffffff", pixel);
+    ctx.restore();
+
+    drawBossPixel(-1, -12, 2, 5, white, pixel);
+    drawBossPixel(-2, -9, 1, 4, mid, pixel);
+    drawBossPixel(1, -9, 1, 4, mid, pixel);
+
+    for (let i = 0; i < 7; i++) {
+        drawBossPixel(-6 + i * 2, 9 + (i % 2), 1, 3, i % 2 ? white : mid, pixel);
+    }
+}
+
 function drawMiniBossLasers() {
     miniBossLasers.forEach(laser => {
         ctx.save();
 
-        if (laser.warning) {
-            ctx.fillStyle = "rgba(255,255,255,0.22)";
-            ctx.shadowColor = "#ffffff";
-            ctx.shadowBlur = 10;
-        } else {
-            ctx.fillStyle = "#ff0033";
-            ctx.shadowColor = "#ff0033";
-            ctx.shadowBlur = 22;
-        }
-
-        ctx.globalAlpha = laser.warning
-            ? 0.35 + Math.sin(miniBossPulse * 10) * 0.2
-            : 0.7 + Math.sin(miniBossPulse * 5) * 0.25;
-
-        ctx.fillRect(
+        drawCelestialLaserCell(
             laser.x * gridSize,
             laser.y * gridSize,
-            gridSize,
-            gridSize
+            laser.warning
         );
 
         ctx.restore();
     });
+}
+
+function drawCelestialLaserCell(x, y, warning) {
+    const centerX = x + gridSize / 2;
+    const centerY = y + gridSize / 2;
+    const pulse = warning
+        ? 0.45 + Math.sin(miniBossPulse * 10) * 0.18
+        : 0.82 + Math.sin(miniBossPulse * 5) * 0.14;
+
+    ctx.globalAlpha = warning ? pulse : 1;
+
+    if (warning) {
+        ctx.strokeStyle = "rgba(224,242,254,0.75)";
+        ctx.shadowColor = "#e0f2fe";
+        ctx.shadowBlur = 12;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 3, y + 3, gridSize - 6, gridSize - 6);
+
+        ctx.fillStyle = "rgba(186,230,253,0.18)";
+        ctx.fillRect(x + 5, y + 5, gridSize - 10, gridSize - 10);
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, y + 4);
+        ctx.lineTo(centerX + 5, centerY);
+        ctx.lineTo(centerX, y + gridSize - 4);
+        ctx.lineTo(centerX - 5, centerY);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(250,204,21,0.36)";
+        ctx.fill();
+        return;
+    }
+
+    const beamGradient = ctx.createRadialGradient(centerX, centerY, 1, centerX, centerY, gridSize * 0.72);
+    beamGradient.addColorStop(0, "rgba(255,255,255,0.98)");
+    beamGradient.addColorStop(0.36, "rgba(186,230,253,0.9)");
+    beamGradient.addColorStop(0.72, "rgba(56,189,248,0.45)");
+    beamGradient.addColorStop(1, "rgba(14,165,233,0)");
+
+    ctx.shadowColor = "#bae6fd";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = beamGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, gridSize * 0.62, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 14;
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX, y + 2);
+    ctx.lineTo(centerX, y + gridSize - 2);
+    ctx.moveTo(x + 2, centerY);
+    ctx.lineTo(x + gridSize - 2, centerY);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(250,204,21,0.8)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, gridSize * 0.36, 0, Math.PI * 2);
+    ctx.stroke();
 }
 
 function getObstaclePattern(currentLevel) {
