@@ -37,7 +37,7 @@
 
             <a href="/logout" class="logout-btn">Выйти</a>
 
-            <div class="instructions">
+            <div class="instructions home-instructions">
                 <h3>Инструкция</h3>
                 <p>ПК → W A S D / Стрелки<br>Телефон → свайпы и кнопки</p>
                 <p>Разные яблоки дают разные эффекты.</p>
@@ -63,6 +63,7 @@
                 <button id="pauseBtn" class="play-btn" type="button">Пауза</button>
                 <button id="soundBtn" class="play-btn" type="button">Звук: вкл</button>
                 <button id="effectsBtn" class="play-btn" type="button">Эффекты: макс</button>
+                <button id="instructionsBtn" class="play-btn" type="button">Инструкция</button>
                 <button id="fullscreenBtn" class="play-btn" type="button" onclick="toggleFullscreen()">Полный экран</button>
                 <a href="/rhythm" class="play-btn">Rhythm Snake</a>
                 <a href="/shop" class="play-btn">Магазин</a>
@@ -98,6 +99,19 @@
 
             <div id="gameOver" class="game-over">Игра окончена!</div>
             <div id="winText" class="game-over" style="color:#56ffb1;">Победа! Ты дошёл до 10 уровня!</div>
+
+            <div id="instructionsModal" class="instructions-modal" hidden>
+                <div class="instructions-panel">
+                    <button id="instructionsCloseBtn" class="modal-close" type="button">×</button>
+                    <h2>Инструкция</h2>
+                    <p><strong>ПК:</strong> W A S D или стрелки.</p>
+                    <p><strong>Телефон:</strong> свайпы по игровому полю.</p>
+                    <p>Разные яблоки дают разные эффекты: монеты, замедление, призрак и бонусные очки.</p>
+                    <p>Скины и следы покупаются отдельно и комбинируются в магазине.</p>
+                    <p>На 3 уровне появляется мини-босс с предупреждением лазеров.</p>
+                    <p>Цель: пройти до 10 уровня.</p>
+                </div>
+            </div>
 
         </div>
     </div>

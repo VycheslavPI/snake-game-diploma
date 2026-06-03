@@ -29,6 +29,9 @@ const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
 const effectsBtn = document.getElementById("effectsBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
+const instructionsBtn = document.getElementById("instructionsBtn");
+const instructionsModal = document.getElementById("instructionsModal");
+const instructionsCloseBtn = document.getElementById("instructionsCloseBtn");
 const touchFeedback = document.getElementById("touchFeedback");
 
 const skinHead = window.GAME_CONFIG.skin.head;
@@ -126,6 +129,11 @@ bootStartBtn.addEventListener("click", () => {
 pauseBtn.addEventListener("click", togglePause);
 soundBtn.addEventListener("click", toggleSound);
 effectsBtn.addEventListener("click", toggleEffectsQuality);
+instructionsBtn.addEventListener("click", openInstructions);
+instructionsCloseBtn.addEventListener("click", closeInstructions);
+instructionsModal.addEventListener("click", (event) => {
+    if (event.target === instructionsModal) closeInstructions();
+});
 
 function runBootSequence() {
     const steps = [
@@ -1764,6 +1772,14 @@ function toggleEffectsQuality() {
     updateSettingsButtons();
 }
 
+function openInstructions() {
+    instructionsModal.hidden = false;
+}
+
+function closeInstructions() {
+    instructionsModal.hidden = true;
+}
+
 function togglePause() {
     if (!gameStarted) return;
 
@@ -1807,6 +1823,11 @@ function setDirection(direction) {
 
 document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
+
+    if (key === "escape" && !instructionsModal.hidden) {
+        closeInstructions();
+        return;
+    }
 
     if (key === " " || key === "p" || key === "з") {
         event.preventDefault();
