@@ -4,6 +4,7 @@ import psycopg2
 import psycopg2.extras
 import os
 import sqlite3
+import base64
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
@@ -216,7 +217,8 @@ def init_database():
             games_played INTEGER DEFAULT 0,
             best_level INTEGER DEFAULT 1,
             rhythm_best_score INTEGER DEFAULT 0,
-            rhythm_games_played INTEGER DEFAULT 0
+            rhythm_games_played INTEGER DEFAULT 0,
+            avatar_data TEXT DEFAULT ''
         )
     """)
 
@@ -233,7 +235,8 @@ def init_database():
         "games_played": "INTEGER DEFAULT 0",
         "best_level": "INTEGER DEFAULT 1",
         "rhythm_best_score": "INTEGER DEFAULT 0",
-        "rhythm_games_played": "INTEGER DEFAULT 0"
+        "rhythm_games_played": "INTEGER DEFAULT 0",
+        "avatar_data": "TEXT DEFAULT ''"
     }
 
     for column_name, column_type in extra_columns.items():
@@ -749,7 +752,8 @@ def profile():
             owned_skins,
             owned_trails,
             rhythm_best_score,
-            rhythm_games_played
+            rhythm_games_played,
+            avatar_data
         FROM users
         WHERE username = %s
     """, (username,))
@@ -787,6 +791,50 @@ def profile():
         achievements_count=achievements_count["unlocked_count"] if achievements_count else 0,
         achievements_total=len(ACHIEVEMENTS)
     )
+
+
+@app.route("/profile/avatar", methods=["POST"])
+def upload_avatar():
+    if "user" not in session:
+        return redirect("/")
+
+    avatar = request.files.get("avatar")
+
+    if not avatar or not avatar.filename:
+        return redirect("/profile")
+
+    allowed_types = {
+        "image/png": "png",
+        "image/jpeg": "jpeg",
+        "image/webp": "webp"
+    }
+
+    if avatar.mimetype not in allowed_types:
+        return redirect("/profile")
+
+    avatar_bytes = avatar.read()
+
+    if len(avatar_bytes) > 700 * 1024:
+        return redirect("/profile")
+
+    encoded = base64.b64encode(avatar_bytes).decode("ascii")
+    avatar_data = "data:" + avatar.mimetype + ";base64," + encoded
+
+    username = session["user"]
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE users
+        SET avatar_data = %s
+        WHERE username = %s
+    """, (avatar_data, username))
+
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+    return redirect("/profile")
 
 
 @app.route("/feedback", methods=["GET", "POST"])

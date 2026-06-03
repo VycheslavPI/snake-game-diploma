@@ -43,6 +43,21 @@
 
         <div class="profile-layout">
             <section class="profile-panel">
+                <div class="avatar-block">
+                    {% if user.avatar_data %}
+                        <img class="profile-avatar" src="{{ user.avatar_data }}" alt="Avatar">
+                    {% else %}
+                        <div class="profile-avatar avatar-placeholder">{{ username[:1]|upper }}</div>
+                    {% endif %}
+
+                    <form method="POST" action="/profile/avatar" enctype="multipart/form-data" class="avatar-form">
+                        <label class="upload-btn avatar-upload">
+                            <input type="file" name="avatar" accept="image/png,image/jpeg,image/webp" required>
+                            Загрузить аватарку
+                        </label>
+                        <button type="submit" class="play-btn">Сохранить</button>
+                    </form>
+                </div>
                 <h2>Статистика</h2>
 
                 <div class="profile-stats">
