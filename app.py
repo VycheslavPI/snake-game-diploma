@@ -798,27 +798,38 @@ def upload_avatar():
     if "user" not in session:
         return redirect("/")
 
+    avatar_data = request.form.get("avatar_data", "").strip()
     avatar = request.files.get("avatar")
 
-    if not avatar or not avatar.filename:
-        return redirect("/profile")
+    if avatar_data:
+        allowed_prefixes = (
+            "data:image/png;base64,",
+            "data:image/jpeg;base64,",
+            "data:image/webp;base64,"
+        )
 
-    allowed_types = {
-        "image/png": "png",
-        "image/jpeg": "jpeg",
-        "image/webp": "webp"
-    }
+        if not avatar_data.startswith(allowed_prefixes) or len(avatar_data) > 900 * 1024:
+            return redirect("/profile?avatar=error")
+    else:
+        if not avatar or not avatar.filename:
+            return redirect("/profile?avatar=empty")
 
-    if avatar.mimetype not in allowed_types:
-        return redirect("/profile")
+        allowed_types = {
+            "image/png": "png",
+            "image/jpeg": "jpeg",
+            "image/webp": "webp"
+        }
 
-    avatar_bytes = avatar.read()
+        if avatar.mimetype not in allowed_types:
+            return redirect("/profile?avatar=type")
 
-    if len(avatar_bytes) > 700 * 1024:
-        return redirect("/profile")
+        avatar_bytes = avatar.read()
 
-    encoded = base64.b64encode(avatar_bytes).decode("ascii")
-    avatar_data = "data:" + avatar.mimetype + ";base64," + encoded
+        if len(avatar_bytes) > 2 * 1024 * 1024:
+            return redirect("/profile?avatar=size")
+
+        encoded = base64.b64encode(avatar_bytes).decode("ascii")
+        avatar_data = "data:" + avatar.mimetype + ";base64," + encoded
 
     username = session["user"]
     connection = get_db_connection()
@@ -834,7 +845,7 @@ def upload_avatar():
     cursor.close()
     connection.close()
 
-    return redirect("/profile")
+    return redirect("/profile?avatar=ok")
 
 
 @app.route("/feedback", methods=["GET", "POST"])
