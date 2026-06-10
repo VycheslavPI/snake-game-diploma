@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='maskable-icon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script defer src="{{ url_for('static', filename='pwa.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='theme.js') }}"></script>
 </head>
 <body>
 
@@ -64,6 +65,7 @@
                 <button id="soundBtn" class="play-btn" type="button">Звук: вкл</button>
                 <button id="effectsBtn" class="play-btn" type="button">Эффекты: макс</button>
                 <button id="instructionsBtn" class="play-btn" type="button">Инструкция</button>
+                <button class="play-btn" type="button" data-theme-toggle>Светлая тема</button>
                 <button id="fullscreenBtn" class="play-btn" type="button" onclick="toggleFullscreen()">Полный экран</button>
                 <a href="/rhythm" class="play-btn">Rhythm Snake</a>
                 <a href="/shop" class="play-btn">Магазин</a>

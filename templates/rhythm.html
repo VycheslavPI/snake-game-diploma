@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='maskable-icon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script defer src="{{ url_for('static', filename='pwa.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='theme.js') }}"></script>
 </head>
 <body>
 
@@ -32,6 +33,7 @@
                 </label>
                 <button id="rhythmStartBtn" class="play-btn" type="button" disabled>Старт</button>
                 <button id="rhythmStopBtn" class="play-btn" type="button" disabled>Стоп</button>
+                <button class="play-btn" type="button" data-theme-toggle>Светлая тема</button>
                 <a href="/game" class="play-btn">Обычная змейка</a>
                 <a href="/profile" class="play-btn">Профиль</a>
             </div>
@@ -83,7 +85,7 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='rhythm.js') }}?v=6"></script>
+<script src="{{ url_for('static', filename='rhythm.js') }}?v=7"></script>
 
 </body>
 </html>

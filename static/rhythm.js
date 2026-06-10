@@ -12,8 +12,10 @@ const rhythmAccuracy = document.getElementById("rhythmAccuracy");
 const rhythmLives = document.getElementById("rhythmLives");
 const rhythmBest = document.getElementById("rhythmBest");
 
+const stageWidth = 520;
+const stageHeight = 520;
 const laneCount = 5;
-const hitLineY = rhythmCanvas.height - 92;
+const hitLineY = stageHeight - 92;
 const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
 const noteTravelTime = isTouchDevice ? 2500 : 2250;
 const catchWindow = 44;
@@ -47,8 +49,15 @@ let playerLaneTarget = 2;
 let pendingSave = false;
 let gameEnded = false;
 
+function setupRhythmResolution() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    rhythmCanvas.width = Math.round(stageWidth * dpr);
+    rhythmCanvas.height = Math.round(stageHeight * dpr);
+    rhythmCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 function laneX(lane) {
-    return ((lane + 0.5) / laneCount) * rhythmCanvas.width;
+    return ((lane + 0.5) / laneCount) * stageWidth;
 }
 
 function resetRhythmState() {
@@ -83,7 +92,7 @@ function updateStats() {
 
 function drawRhythmScene() {
     rhythmCtx.fillStyle = "#061a2d";
-    rhythmCtx.fillRect(0, 0, rhythmCanvas.width, rhythmCanvas.height);
+    rhythmCtx.fillRect(0, 0, stageWidth, stageHeight);
 
     drawLanes();
     drawPulses();
@@ -97,20 +106,20 @@ function drawRhythmScene() {
 }
 
 function drawLanes() {
-    const laneWidth = rhythmCanvas.width / laneCount;
+    const laneWidth = stageWidth / laneCount;
 
     for (let lane = 0; lane < laneCount; lane++) {
         const x = lane * laneWidth;
         const center = laneX(lane);
 
         rhythmCtx.fillStyle = lane % 2 === 0 ? "rgba(255,255,255,0.018)" : "rgba(255,255,255,0.034)";
-        rhythmCtx.fillRect(x, 0, laneWidth, rhythmCanvas.height);
+        rhythmCtx.fillRect(x, 0, laneWidth, stageHeight);
 
         rhythmCtx.strokeStyle = "rgba(125,255,207,0.14)";
         rhythmCtx.lineWidth = 1;
         rhythmCtx.beginPath();
         rhythmCtx.moveTo(x, 0);
-        rhythmCtx.lineTo(x, rhythmCanvas.height);
+        rhythmCtx.lineTo(x, stageHeight);
         rhythmCtx.stroke();
 
         rhythmCtx.save();
@@ -119,7 +128,7 @@ function drawLanes() {
         rhythmCtx.lineWidth = 3;
         rhythmCtx.beginPath();
         rhythmCtx.moveTo(center, 0);
-        rhythmCtx.lineTo(center, rhythmCanvas.height);
+        rhythmCtx.lineTo(center, stageHeight);
         rhythmCtx.stroke();
         rhythmCtx.restore();
     }
@@ -131,11 +140,11 @@ function drawLanes() {
     rhythmCtx.shadowBlur = 18;
     rhythmCtx.beginPath();
     rhythmCtx.moveTo(18, hitLineY);
-    rhythmCtx.lineTo(rhythmCanvas.width - 18, hitLineY);
+    rhythmCtx.lineTo(stageWidth - 18, hitLineY);
     rhythmCtx.stroke();
 
     rhythmCtx.fillStyle = "rgba(55,255,179,0.08)";
-    rhythmCtx.fillRect(0, hitLineY - catchWindow, rhythmCanvas.width, catchWindow * 2);
+    rhythmCtx.fillRect(0, hitLineY - catchWindow, stageWidth, catchWindow * 2);
     rhythmCtx.restore();
 }
 
@@ -550,4 +559,9 @@ rhythmCanvas.addEventListener("pointermove", event => {
     setPlayerLane(laneFromPointer(event), true);
 }, {passive: false});
 
+setupRhythmResolution();
+window.addEventListener("resize", () => {
+    setupRhythmResolution();
+    drawRhythmScene();
+});
 drawRhythmScene();

@@ -1930,3 +1930,141 @@ body{
         width:min(100%, calc(100dvh - 250px));
     }
 }
+
+/* ===== LIGHT THEME ===== */
+
+.theme-light body{
+    background:
+        radial-gradient(circle at 18% 12%, rgba(14,165,233,0.22), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(34,197,94,0.18), transparent 26%),
+        linear-gradient(135deg, #dff7ff 0%, #f3fff8 48%, #dceeff 100%);
+    color:#062033;
+}
+
+.theme-light .background-grid{
+    opacity:0.68;
+    background-image:
+        linear-gradient(rgba(14,116,144,0.13) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14,116,144,0.13) 1px, transparent 1px);
+}
+
+.theme-light .glass-card,
+.theme-light .leaderboard,
+.theme-light .profile-panel,
+.theme-light .achievement-card,
+.theme-light .skin-card,
+.theme-light .result-panel,
+.theme-light .instructions-panel{
+    background:rgba(242,252,255,0.9);
+    color:#062033;
+    border-color:rgba(14,116,144,0.22);
+    box-shadow:
+        0 18px 45px rgba(8,47,73,0.14),
+        0 0 24px rgba(20,184,166,0.14);
+}
+
+.theme-light .title,
+.theme-light .profile-panel h2,
+.theme-light .instructions-panel h2{
+    color:#06765f;
+    text-shadow:none;
+}
+
+.theme-light .welcome,
+.theme-light .instructions-panel p,
+.theme-light .result-achievements{
+    color:#17445f;
+}
+
+.theme-light .instructions,
+.theme-light .stat-box,
+.theme-light .result-stats div,
+.theme-light .feedback-item,
+.theme-light .profile-stat{
+    background:rgba(225,245,252,0.9);
+    border-color:rgba(14,116,144,0.18);
+}
+
+.theme-light .stat-box span,
+.theme-light .profile-stat span,
+.theme-light .profile-label,
+.theme-light .rhythm-settings,
+.theme-light .rhythm-note,
+.theme-light .avatar-status{
+    color:#2c6078;
+}
+
+.theme-light .stat-box strong,
+.theme-light .profile-stat strong,
+.theme-light .profile-preview strong{
+    color:#07866b;
+}
+
+.theme-light canvas,
+.theme-light #gameCanvas,
+.theme-light #rhythmCanvas{
+    background:#e8fbff;
+    border-color:#09a77f;
+    box-shadow:
+        0 0 24px rgba(20,184,166,0.28),
+        0 0 60px rgba(14,165,233,0.14);
+}
+
+.theme-light .rhythm-hint,
+.theme-light .pause-text{
+    background:rgba(242,252,255,0.9);
+    color:#0f3a52;
+    border-color:rgba(14,116,144,0.2);
+}
+
+.theme-light table tr{
+    border-bottom-color:rgba(8,47,73,0.12);
+}
+
+.theme-light th{
+    color:#06765f;
+}
+
+.theme-light td{
+    color:#14384f;
+}
+
+@media(max-width:700px){
+    .rhythm-wrapper{
+        padding:8px;
+    }
+
+    .rhythm-card{
+        padding:12px;
+        gap:10px;
+    }
+
+    .rhythm-toolbar{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:8px;
+    }
+
+    .rhythm-toolbar .play-btn,
+    .upload-btn{
+        min-height:38px;
+        padding:8px 9px;
+        font-size:12px;
+    }
+
+    .rhythm-stats{
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:6px;
+    }
+
+    .rhythm-stats .stat-box{
+        min-height:48px;
+        padding:7px 6px;
+    }
+
+    #rhythmCanvas{
+        width:min(100%, calc(100dvh - 330px));
+        min-width:280px;
+        max-width:420px;
+        border-radius:16px;
+    }
+}
